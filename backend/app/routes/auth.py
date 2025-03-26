@@ -71,3 +71,8 @@ def protected():
         return jsonify({"error": "User not found"}), 404
 
     return jsonify({"id": user.id, "role": user.role})
+
+@auth_bp.route("/logout", methods=["POST"])
+@jwt_required()
+def logout():
+    return jsonify({"message": "Logout successful. Please remove the token from your client."}), 200
