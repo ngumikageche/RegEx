@@ -23,6 +23,7 @@ import Icons from "views/Icons.js";
 import Maps from "views/Maps.js";
 import Notifications from "views/Notifications.js";
 import Upgrade from "views/Upgrade.js";
+import Register from "views/Register";
 
 const dashboardRoutes = [
   {
@@ -81,6 +82,13 @@ const dashboardRoutes = [
     icon: "nc-icon nc-bell-55",
     component: Notifications,
     layout: "/admin"
+  },
+  {
+    path: "/add_user",
+    name: "Add User",
+    icon: "nc-icon nc-simple-add",
+    component: Register, // Use the AddUser component
+    layout: "/admin",  // Change layout to "/admin"
   }
 ];
 
