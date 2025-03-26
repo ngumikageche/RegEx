@@ -2,12 +2,24 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from app.models.user import User
 from database import db
-from werkzeug.security import generate_password_hash, check_password_hash
+from flask_bcrypt import Bcrypt
+from flask_cors import CORS
 
 auth_bp = Blueprint("auth", __name__)
+bcrypt = Bcrypt()
+
+# Allow CORS
+CORS(auth_bp)
 
 @auth_bp.route("/register", methods=["POST"])
+@jwt_required()  # Only logged-in users can register others
 def register():
+    current_user_id = get_jwt_identity()
+    current_user = User.query.get(current_user_id)
+
+    if not current_user or current_user.role != "admin":
+        return jsonify({"error": "Unauthorized. Only admins can register users."}), 403
+
     data = request.json
     username = data.get("username")
     email = data.get("email")
@@ -23,7 +35,7 @@ def register():
 
     new_user = User(username=username, email=email, role=role)
     new_user.set_password(password)  # Hash password before saving
-    
+
     db.session.add(new_user)
     db.session.commit()
 
@@ -41,13 +53,21 @@ def login():
     if not user or not user.check_password(password):
         return jsonify({"error": "Wrong email or password"}), 401
 
-    access_token = create_access_token(identity={"id": user.id, "role": user.role})
+    access_token = create_access_token(identity=user.id)
     
-    return jsonify({"token": access_token, "role": user.role}), 200
+    return jsonify({
+        "token": access_token,
+        "role": user.role
+    }), 200
 
 
 @auth_bp.route("/protected", methods=["GET"])
 @jwt_required()
 def protected():
-    user_identity = get_jwt_identity()
-    return jsonify({"id": user_identity["id"], "role": user_identity["role"]})
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    return jsonify({"id": user.id, "role": user.role})

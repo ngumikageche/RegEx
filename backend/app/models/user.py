@@ -1,6 +1,8 @@
 from database import db
 from app.models.base_model import BaseModel
-from flask_bcrypt import generate_password_hash, check_password_hash
+from flask_bcrypt import Bcrypt
+
+bcrypt = Bcrypt()
 
 class User(BaseModel):
     __tablename__ = "users"
@@ -11,10 +13,10 @@ class User(BaseModel):
     role = db.Column(db.String(20), default="user")  # e.g., admin, doctor, staff
 
     def set_password(self, password):
-        self.password_hash = generate_password_hash(password).decode("utf-8")
+        self.password_hash = bcrypt.generate_password_hash(password).decode("utf-8")
 
     def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
+        return bcrypt.check_password_hash(self.password_hash, password)
 
     def __repr__(self):
         return f"<User {self.username}>"
