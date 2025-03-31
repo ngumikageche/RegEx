@@ -1,24 +1,22 @@
-import React from "react";
+// src/components/Navbars/AdminNavbar.js
+import React, { useContext, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Navbar, Container, Nav, Dropdown, Button } from "react-bootstrap";
-
+import { Navbar, Container, Nav, Dropdown } from "react-bootstrap";
+import { UserContext } from "context/UserContext";
 import routes from "routes.js";
 
-function Header() {
+function AdminNavbar() {
   const location = useLocation();
-  const navigate = useNavigate(); // Use navigate for redirection
+  const navigate = useNavigate();
+  const { user, fetchUser } = useContext(UserContext);
 
-  const mobileSidebarToggle = (e) => {
-    e.preventDefault();
-    document.documentElement.classList.toggle("nav-open");
-    var node = document.createElement("div");
-    node.id = "bodyClick";
-    node.onclick = function () {
-      this.parentElement.removeChild(this);
-      document.documentElement.classList.toggle("nav-open");
-    };
-    document.body.appendChild(node);
-  };
+  // Fetch user data on mount if token exists
+  useEffect(() => {
+    const token = localStorage.getItem("auth_token");
+    if (token && !user) {
+      fetchUser(token);
+    }
+  }, [user, fetchUser]);
 
   const getBrandText = () => {
     for (let i = 0; i < routes.length; i++) {
@@ -29,152 +27,58 @@ function Header() {
     return "Brand";
   };
 
-  const handleLogout = async () => {
-    try {
-      const response = await fetch("http://127.0.0.1:5000/logout", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
-        },
-      });
-
-      if (response.ok) {
-        localStorage.removeItem("auth_token"); // Remove token from localStorage
-        navigate("/login"); // Redirect to login page
-      } else {
-        console.error("Logout failed");
-      }
-    } catch (error) {
-      console.error("Error during logout:", error);
-    }
+  const handleLogout = () => {
+    localStorage.removeItem("auth_token");
+    navigate("/login");
   };
 
   return (
-    <Navbar bg="light" expand="lg">
+    <Navbar
+      bg="white"
+      expand="lg"
+      className="border-bottom shadow-sm"
+      style={{ height: "60px" }}
+    >
       <Container fluid>
-        <div className="d-flex justify-content-center align-items-center ml-2 ml-lg-0">
-          <Button
-            variant="dark"
-            className="d-lg-none btn-fill d-flex justify-content-center align-items-center rounded-circle p-2"
-            onClick={mobileSidebarToggle}
-          >
-            <i className="fas fa-ellipsis-v"></i>
-          </Button>
-          <Navbar.Brand
-            href="#home"
-            onClick={(e) => e.preventDefault()}
-            className="mr-2"
-          >
-            {getBrandText()}
-          </Navbar.Brand>
-        </div>
-        <Navbar.Toggle aria-controls="basic-navbar-nav" className="mr-2">
-          <span className="navbar-toggler-bar burger-lines"></span>
-          <span className="navbar-toggler-bar burger-lines"></span>
-          <span className="navbar-toggler-bar burger-lines"></span>
-        </Navbar.Toggle>
-        <Navbar.Collapse id="basic-navbar-nav">
-          <Nav className="nav mr-auto" navbar>
-            <Nav.Item>
-              <Nav.Link
-                data-toggle="dropdown"
-                href="#pablo"
-                onClick={(e) => e.preventDefault()}
-                className="m-0"
-              >
-                <i className="nc-icon nc-palette"></i>
-                <span className="d-lg-none ml-1">Dashboard</span>
-              </Nav.Link>
-            </Nav.Item>
-            <Dropdown as={Nav.Item}>
-              <Dropdown.Toggle
-                as={Nav.Link}
-                data-toggle="dropdown"
-                id="dropdown-67443507"
-                variant="default"
-                className="m-0"
-              >
-                <i className="nc-icon nc-planet"></i>
-                <span className="notification">5</span>
-                <span className="d-lg-none ml-1">Notification</span>
-              </Dropdown.Toggle>
-              <Dropdown.Menu>
-                <Dropdown.Item href="#pablo" onClick={(e) => e.preventDefault()}>
-                  Notification 1
-                </Dropdown.Item>
-                <Dropdown.Item href="#pablo" onClick={(e) => e.preventDefault()}>
-                  Notification 2
-                </Dropdown.Item>
-                <Dropdown.Item href="#pablo" onClick={(e) => e.preventDefault()}>
-                  Notification 3
-                </Dropdown.Item>
-                <Dropdown.Item href="#pablo" onClick={(e) => e.preventDefault()}>
-                  Notification 4
-                </Dropdown.Item>
-                <Dropdown.Item href="#pablo" onClick={(e) => e.preventDefault()}>
-                  Another notification
-                </Dropdown.Item>
-              </Dropdown.Menu>
-            </Dropdown>
-            <Nav.Item>
-              <Nav.Link
-                className="m-0"
-                href="#pablo"
-                onClick={(e) => e.preventDefault()}
-              >
-                <i className="nc-icon nc-zoom-split"></i>
-                <span className="d-lg-block"> Search</span>
-              </Nav.Link>
-            </Nav.Item>
-          </Nav>
-          <Nav className="ml-auto" navbar>
-            <Nav.Item>
-              <Nav.Link className="m-0" href="#pablo" onClick={(e) => e.preventDefault()}>
-                <span className="no-icon">Account</span>
-              </Nav.Link>
-            </Nav.Item>
-            <Dropdown as={Nav.Item}>
-              <Dropdown.Toggle
-                aria-expanded={false}
-                aria-haspopup={true}
-                as={Nav.Link}
-                data-toggle="dropdown"
-                id="navbarDropdownMenuLink"
-                variant="default"
-                className="m-0"
-              >
-                <span className="no-icon">Dropdown</span>
-              </Dropdown.Toggle>
-              <Dropdown.Menu aria-labelledby="navbarDropdownMenuLink">
-                <Dropdown.Item href="#pablo" onClick={(e) => e.preventDefault()}>
-                  Action
-                </Dropdown.Item>
-                <Dropdown.Item href="#pablo" onClick={(e) => e.preventDefault()}>
-                  Another action
-                </Dropdown.Item>
-                <Dropdown.Item href="#pablo" onClick={(e) => e.preventDefault()}>
-                  Something
-                </Dropdown.Item>
-                <Dropdown.Item href="#pablo" onClick={(e) => e.preventDefault()}>
-                  Something else here
-                </Dropdown.Item>
-                <div className="divider"></div>
-                <Dropdown.Item href="#pablo" onClick={(e) => e.preventDefault()}>
-                  Separated link
-                </Dropdown.Item>
-              </Dropdown.Menu>
-            </Dropdown>
-            <Nav.Item>
-              <Nav.Link className="m-0" onClick={handleLogout}>
-                <span className="no-icon">Log out</span>
-              </Nav.Link>
-            </Nav.Item>
-          </Nav>
-        </Navbar.Collapse>
+        {/* Left side: Page title */}
+        <Navbar.Brand
+          href="#home"
+          onClick={(e) => e.preventDefault()}
+          className="font-weight-bold text-dark"
+          style={{ fontSize: "24px" }}
+        >
+          {getBrandText()}
+        </Navbar.Brand>
+
+        {/* Right side: User dropdown */}
+        <Nav className="ml-auto" navbar>
+          <Dropdown as={Nav.Item}>
+            <Dropdown.Toggle
+              as={Nav.Link}
+              id="navbarDropdownMenuLink"
+              variant="default"
+              className="m-0 text-dark"
+              style={{ fontSize: "16px", fontWeight: "500" }}
+            >
+              {user ? user.username : "User"}
+            </Dropdown.Toggle>
+            <Dropdown.Menu align="end">
+              <Dropdown.Item href="#pablo" onClick={(e) => e.preventDefault()}>
+                Profile
+              </Dropdown.Item>
+              <Dropdown.Item href="#pablo" onClick={(e) => e.preventDefault()}>
+                Settings
+              </Dropdown.Item>
+              <Dropdown.Divider />
+              <Dropdown.Item onClick={handleLogout}>
+                Logout
+              </Dropdown.Item>
+            </Dropdown.Menu>
+          </Dropdown>
+        </Nav>
       </Container>
     </Navbar>
   );
 }
 
-export default Header;
+export default AdminNavbar;

@@ -1,3 +1,4 @@
+// src/index.js
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
@@ -13,19 +14,32 @@ import "@fortawesome/fontawesome-free/css/all.min.css";
 import AdminLayout from "layouts/Admin.js";
 import AuthLayout from "layouts/Auth.js"; // New layout for login/register
 
+// Import UserProvider and ProtectedRoute
+import { UserProvider } from "./context/UserContext";
+import ProtectedRoute from "./components/ProtectedRoute";
+
 const root = ReactDOM.createRoot(document.getElementById("root"));
 
 root.render(
   <BrowserRouter>
-    <Routes>
-      {/* Admin Routes */}
-      <Route path="/admin/*" element={<AdminLayout />} />
+    <UserProvider>
+      <Routes>
+        {/* Admin Routes (Protected) */}
+        <Route
+          path="/admin/*"
+          element={
+            <ProtectedRoute>
+              <AdminLayout />
+            </ProtectedRoute>
+          }
+        />
 
-      {/* Auth Routes (Login/Register) */}
-      <Route path="/auth/*" element={<AuthLayout />} />
+        {/* Auth Routes (Login/Register) */}
+        <Route path="/auth/*" element={<AuthLayout />} />
 
-      {/* Default Redirect */}
-      <Route path="*" element={<Navigate to="/auth/login" />} />
-    </Routes>
+        {/* Default Redirect */}
+        <Route path="*" element={<Navigate to="/auth/login" />} />
+      </Routes>
+    </UserProvider>
   </BrowserRouter>
 );

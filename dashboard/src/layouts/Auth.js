@@ -3,6 +3,7 @@ import { Route, Routes } from "react-router-dom"; // ✅ Use Routes instead of S
 import Login from "../views/Login";
 import Register from "../views/Register";
 
+
 const AuthLayout = () => {
   return (
     <div className="auth-container">

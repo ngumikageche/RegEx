@@ -1,38 +1,69 @@
-import React, { useState } from "react";
-import { Button, Card, Form, Container, Row, Col } from "react-bootstrap";
+import React, { useState, useContext } from "react";
+import { Button, Card, Form, Container, Row, Col, Alert } from "react-bootstrap";
+import { UserContext } from "context/UserContext"; // Import UserContext
 
 const Register = () => {
+  const { user } = useContext(UserContext); // Get user context
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("user"); // Default role is "user"
+  const [role, setRole] = useState("doctor"); // Default role
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [loading, setLoading] = useState(false); // Loading state
 
   const handleRegister = async (e) => {
     e.preventDefault();
+    setError("");
+    setSuccess("");
+    setLoading(true);
+
+    const token = localStorage.getItem("auth_token"); // Use stored token
+
+    if (!token || user?.role !== "admin") {
+      setError("You must be logged in as an admin to register users.");
+      setLoading(false);
+      return;
+    }
+
+    const userData = {
+      username: username.trim(),
+      email: email.trim(),
+      password,
+      role
+    };
+
+    console.log("Sending data:", userData); // Debug request payload
 
     try {
-      const response = await fetch("http://127.0.0.1:5000/register", {
+      const response = await fetch("http://127.0.0.1:5000/auth/register", {
         method: "POST",
+        mode: "cors",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ username, email, password, role }),
+        body: JSON.stringify(userData),
       });
 
       const data = await response.json();
+      console.log("Response:", data); // Debug API response
 
       if (response.ok) {
-        alert("Registration successful!");
+        setSuccess("Registration successful!");
         setUsername("");
         setEmail("");
         setPassword("");
-        setRole("user"); // Reset role to default
+        setRole("doctor");
       } else {
-        alert("Registration failed: " + data.message);
+        setError(data.message || "Registration failed");
       }
     } catch (error) {
       console.error("Error:", error);
-      alert("Registration request failed");
+      setError("Registration request failed");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -43,8 +74,12 @@ const Register = () => {
           <Card>
             <Card.Body>
               <h3 className="text-center">Register</h3>
+
+              {error && <Alert variant="danger">{error}</Alert>}
+              {success && <Alert variant="success">{success}</Alert>}
+
               <Form onSubmit={handleRegister}>
-                <Form.Group>
+                <Form.Group className="mb-3">
                   <Form.Label>Username</Form.Label>
                   <Form.Control
                     type="text"
@@ -55,7 +90,7 @@ const Register = () => {
                   />
                 </Form.Group>
 
-                <Form.Group>
+                <Form.Group className="mb-3">
                   <Form.Label>Email address</Form.Label>
                   <Form.Control
                     type="email"
@@ -66,7 +101,7 @@ const Register = () => {
                   />
                 </Form.Group>
 
-                <Form.Group>
+                <Form.Group className="mb-3">
                   <Form.Label>Password</Form.Label>
                   <Form.Control
                     type="password"
@@ -77,20 +112,16 @@ const Register = () => {
                   />
                 </Form.Group>
 
-                <Form.Group>
+                <Form.Group className="mb-3">
                   <Form.Label>Role</Form.Label>
-                  <Form.Control
-                    as="select"
-                    value={role}
-                    onChange={(e) => setRole(e.target.value)}
-                  >
-                    <option value="user">User</option>
+                  <Form.Control as="select" value={role} onChange={(e) => setRole(e.target.value)}>
+                    <option value="doctor">Doctor</option>
                     <option value="admin">Admin</option>
                   </Form.Control>
                 </Form.Group>
 
-                <Button type="submit" variant="primary" className="mt-3 w-100">
-                  Register
+                <Button type="submit" variant="primary" className="w-100" disabled={loading}>
+                  {loading ? "Registering..." : "Register"}
                 </Button>
               </Form>
             </Card.Body>

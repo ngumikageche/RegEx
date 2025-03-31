@@ -20,13 +20,14 @@ function Admin() {
   const getRoutes = (routes) => {
     return routes.map((prop, key) => {
       if (prop.layout === "/admin") {
-        const Component = prop.component; // Store component reference
-        return <Route path={prop.layout + prop.path} element={<Component />} key={key} />;
-      } else {
-        return null;
+        const Component = prop.component;
+        return <Route path={prop.path} element={<Component />} key={key} />;
       }
+      return null;
     });
   };
+  
+  
 
   React.useEffect(() => {
     document.documentElement.scrollTop = 0;
