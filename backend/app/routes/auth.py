@@ -1,17 +1,13 @@
 # app/routes/auth.py
 from flask import Blueprint, request, jsonify, current_app
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, get_jwt
 from datetime import timedelta
 from app.models.user import User
 from database import db
 from flask_bcrypt import Bcrypt
-from flask_cors import CORS
 
 auth_bp = Blueprint("auth", __name__)
 bcrypt = Bcrypt()
-
-# Allow CORS
-CORS(auth_bp, origins="http://localhost:3000", supports_credentials=True)
 
 @auth_bp.route("/register", methods=["POST"])
 @jwt_required()
@@ -21,6 +17,20 @@ def register():
         current_app.logger.debug(f"Headers: {request.headers}")
         current_app.logger.debug(f"Raw Data: {request.data}")
         current_app.logger.debug(f"JSON Data: {request.get_json()}")
+
+        jwt_data = get_jwt()
+        current_app.logger.debug(f"JWT claims: {jwt_data}")
+        user_id = get_jwt_identity()
+        current_app.logger.debug(f"User ID from token: {user_id}")
+
+        user = User.query.get(user_id)
+        if not user:
+            current_app.logger.warning(f"User not found for ID: {user_id}")
+            return jsonify({"message": "User not found"}), 404
+
+        if user.role != "admin":
+            current_app.logger.warning(f"Non-admin user {user_id} attempted to register a new user")
+            return jsonify({"message": "Only admins can register new users"}), 403
 
         data = request.json
         if not data:
@@ -36,12 +46,18 @@ def register():
             current_app.logger.warning("Missing required fields in register request")
             return jsonify({"message": "All fields are required"}), 400
 
-        # Check if user already exists
+        if role not in ["doctor", "admin"]:
+            current_app.logger.warning(f"Invalid role provided: {role}")
+            return jsonify({"message": "Invalid role. Must be 'doctor' or 'admin'"}), 400
+
         if User.query.filter_by(email=email).first():
             current_app.logger.warning(f"User with email {email} already exists")
             return jsonify({"message": "User with this email already exists"}), 400
 
-        # Hash the password
+        if User.query.filter_by(username=username).first():
+            current_app.logger.warning(f"User with username {username} already exists")
+            return jsonify({"message": "User with this username already exists"}), 400
+
         hashed_password = bcrypt.generate_password_hash(password).decode("utf-8")
         new_user = User(username=username, email=email, password=hashed_password, role=role)
         db.session.add(new_user)
@@ -54,6 +70,7 @@ def register():
         current_app.logger.error(f"Error during registration: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
+# app/routes/auth.py
 @auth_bp.route("/login", methods=["POST"])
 def login():
     try:
@@ -63,16 +80,21 @@ def login():
         password = data.get("password")
 
         current_app.logger.debug(f"Login attempt for email: {email}")
+        current_app.logger.debug(f"Provided password: {password}")
 
         user = User.query.filter_by(email=email).first()
 
-        if not user or not user.check_password(password):
-            current_app.logger.warning(f"Failed login attempt for email: {email}")
+        if not user:
+            current_app.logger.warning(f"User not found for email: {email}")
             return jsonify({"error": "Wrong email or password"}), 401
 
-        # Create a token with a 15-minute expiration
+        current_app.logger.debug(f"Stored password hash: {user.password_hash}")
+        if not user.check_password(password):
+            current_app.logger.warning(f"Password verification failed for email: {email}")
+            return jsonify({"error": "Wrong email or password"}), 401
+
         access_token = create_access_token(
-            identity=user.id,
+            identity=str(user.id),
             expires_delta=timedelta(minutes=15)
         )
         
@@ -94,7 +116,8 @@ def protected():
         user_id = get_jwt_identity()
         current_app.logger.debug(f"User ID from token: {user_id}")
 
-        user = User.query.get(user_id)
+        # Since user_id is now a string, convert it to an integer for the query
+        user = User.query.get(int(user_id))
         if not user:
             current_app.logger.warning(f"User not found for ID: {user_id}")
             return jsonify({"error": "User not found"}), 404

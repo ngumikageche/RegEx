@@ -1,3 +1,4 @@
+# app/routes/user.py
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.models.user import User
@@ -21,12 +22,23 @@ def get_all_users():
 
     users = User.query.all()
     user_list = [
-        {"id": user.id, "username": user.username, "email": user.email, "role": user.role}
+        {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "role": user.role,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "address": user.address,
+            "city": user.city,
+            "country": user.country,
+            "postal_code": user.postal_code,
+            "about_me": user.about_me,
+        }
         for user in users
     ]
 
     return jsonify(user_list), 200
-
 
 # ----------------------
 # GET A SINGLE USER
@@ -39,8 +51,19 @@ def get_user(user_id):
     if not user:
         return jsonify({"error": "User not found"}), 404
 
-    return jsonify({"id": user.id, "username": user.username, "email": user.email, "role": user.role}), 200
-
+    return jsonify({
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "role": user.role,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "address": user.address,
+        "city": user.city,
+        "country": user.country,
+        "postal_code": user.postal_code,
+        "about_me": user.about_me,
+    }), 200
 
 # ----------------------------
 # UPDATE USER DETAILS (Admin Only)
@@ -62,10 +85,16 @@ def update_user(user_id):
     user.username = data.get("username", user.username)
     user.email = data.get("email", user.email)
     user.role = data.get("role", user.role)  # Only admin can change roles
+    user.first_name = data.get("firstName", user.first_name)
+    user.last_name = data.get("lastName", user.last_name)
+    user.address = data.get("address", user.address)
+    user.city = data.get("city", user.city)
+    user.country = data.get("country", user.country)
+    user.postal_code = data.get("postalCode", user.postal_code)
+    user.about_me = data.get("aboutMe", user.about_me)
 
     db.session.commit()
     return jsonify({"message": "User updated successfully"}), 200
-
 
 # ----------------------------
 # CHANGE PASSWORD (User Only)
@@ -90,7 +119,6 @@ def change_password():
     db.session.commit()
 
     return jsonify({"message": "Password updated successfully"}), 200
-
 
 # ----------------------------
 # DELETE USER (Admin Only)
@@ -129,5 +157,12 @@ def get_current_user():
         "id": user.id,
         "username": user.username,
         "email": user.email,
-        "role": user.role
+        "role": user.role,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "address": user.address,
+        "city": user.city,
+        "country": user.country,
+        "postal_code": user.postal_code,
+        "about_me": user.about_me,
     }), 200
