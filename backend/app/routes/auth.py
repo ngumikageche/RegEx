@@ -9,6 +9,7 @@ from flask_bcrypt import Bcrypt
 auth_bp = Blueprint("auth", __name__)
 bcrypt = Bcrypt()
 
+# app/routes/auth.py
 @auth_bp.route("/register", methods=["POST"])
 @jwt_required()
 def register():
@@ -42,13 +43,19 @@ def register():
         password = data.get("password")
         role = data.get("role", "user")
 
+        current_app.logger.debug(f"Received data - username: {username}, email: {email}, role: {role}")
+
         if not username or not email or not password:
             current_app.logger.warning("Missing required fields in register request")
             return jsonify({"message": "All fields are required"}), 400
 
-        if role not in ["doctor", "admin"]:
+        if len(password) < 6:
+            current_app.logger.warning("Password too short in register request")
+            return jsonify({"message": "Password must be at least 6 characters long"}), 400
+
+        if role not in ["doctor", "admin", "marketer"]:
             current_app.logger.warning(f"Invalid role provided: {role}")
-            return jsonify({"message": "Invalid role. Must be 'doctor' or 'admin'"}), 400
+            return jsonify({"message": "Invalid role. Must be 'doctor', 'admin', or 'marketer'"}), 400
 
         if User.query.filter_by(email=email).first():
             current_app.logger.warning(f"User with email {email} already exists")
@@ -58,8 +65,9 @@ def register():
             current_app.logger.warning(f"User with username {username} already exists")
             return jsonify({"message": "User with this username already exists"}), 400
 
-        hashed_password = bcrypt.generate_password_hash(password).decode("utf-8")
-        new_user = User(username=username, email=email, password=hashed_password, role=role)
+        new_user = User(username=username, email=email, role=role)
+        new_user.set_password(password)
+        current_app.logger.debug(f"New user password hash: {new_user.password_hash}")
         db.session.add(new_user)
         db.session.commit()
 
@@ -67,9 +75,8 @@ def register():
         return jsonify({"message": "User registered successfully"}), 201
 
     except Exception as e:
-        current_app.logger.error(f"Error during registration: {str(e)}")
+        current_app.logger.error(f"Error during registration: {str(e)}", exc_info=True)
         return jsonify({"error": str(e)}), 500
-
 # app/routes/auth.py
 @auth_bp.route("/login", methods=["POST"])
 def login():
@@ -107,7 +114,6 @@ def login():
     except Exception as e:
         current_app.logger.error(f"Error during login: {str(e)}")
         return jsonify({"error": str(e)}), 500
-
 @auth_bp.route("/protected", methods=["GET"])
 @jwt_required()
 def protected():

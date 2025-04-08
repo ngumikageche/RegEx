@@ -4,9 +4,17 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.models.user import User
 from database import db
 from flask_bcrypt import Bcrypt
+from app.models.notification import Notification
 
 bcrypt = Bcrypt()
 user_bp = Blueprint("user", __name__, url_prefix="/users")
+
+
+# Helper function to create a notification
+def create_notification(user_id, message):
+    notification = Notification(user_id=user_id, message=message)
+    db.session.add(notification)
+
 
 # --------------------------
 # GET ALL USERS (Admin Only)
@@ -112,8 +120,14 @@ def change_password():
     old_password = data.get("old_password")
     new_password = data.get("new_password")
 
+    if not old_password or not new_password:
+        return jsonify({"error": "Old password and new password are required"}), 400
+
     if not user.check_password(old_password):
         return jsonify({"error": "Old password is incorrect"}), 400
+
+    if len(new_password) < 6:
+        return jsonify({"error": "New password must be at least 6 characters long"}), 400
 
     user.set_password(new_password)
     db.session.commit()
@@ -136,33 +150,64 @@ def delete_user(user_id):
     if not user:
         return jsonify({"error": "User not found"}), 404
 
+    if user.id == current_user_id:
+        return jsonify({"error": "Admins cannot delete their own account."}), 400
+
+    # Store user details before deletion
+    username = user.username
+
     db.session.delete(user)
+
+    # Notify all other admins
+    admins = User.query.filter_by(role="admin").all()
+    for admin in admins:
+        if admin.id != current_user_id:
+            create_notification(
+                user_id=admin.id,
+                message=f"Admin {current_user.username} deleted user {username}."
+            )
+
     db.session.commit()
 
     return jsonify({"message": "User deleted successfully"}), 200
-
 # --------------------------
-# GET CURRENT LOGGED-IN USER
+# GET AND UPDATE CURRENT LOGGED-IN USER
 # --------------------------
-@user_bp.route("/me", methods=["GET"])
+@user_bp.route("/me", methods=["GET", "PUT"])
 @jwt_required()
-def get_current_user():
+def manage_current_user():
     current_user_id = get_jwt_identity()
     user = User.query.get(current_user_id)
 
     if not user:
         return jsonify({"error": "User not found"}), 404
 
-    return jsonify({
-        "id": user.id,
-        "username": user.username,
-        "email": user.email,
-        "role": user.role,
-        "first_name": user.first_name,
-        "last_name": user.last_name,
-        "address": user.address,
-        "city": user.city,
-        "country": user.country,
-        "postal_code": user.postal_code,
-        "about_me": user.about_me,
-    }), 200
+    if request.method == "GET":
+        return jsonify({
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "role": user.role,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "address": user.address,
+            "city": user.city,
+            "country": user.country,
+            "postal_code": user.postal_code,
+            "about_me": user.about_me,
+        }), 200
+
+    if request.method == "PUT":
+        data = request.json
+        user.username = data.get("username", user.username)
+        user.email = data.get("email", user.email)
+        user.first_name = data.get("firstName", user.first_name)
+        user.last_name = data.get("lastName", user.last_name)
+        user.address = data.get("address", user.address)
+        user.city = data.get("city", user.city)
+        user.country = data.get("country", user.country)
+        user.postal_code = data.get("postalCode", user.postal_code)
+        user.about_me = data.get("aboutMe", user.about_me)
+
+        db.session.commit()
+        return jsonify({"message": "Profile updated successfully"}), 200

@@ -4,8 +4,10 @@ from config import DevelopmentConfig
 from database import db  # Importing the initialized database instance
 from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager
+from flask_bcrypt import Bcrypt
 from flask_cors import CORS
 import logging
+bcrypt = Bcrypt()  # Initialize Bcrypt globally
 
 def create_app():
     app = Flask(__name__)
@@ -46,7 +48,7 @@ def create_app():
             response.headers["Access-Control-Allow-Origin"] = allowed_origins[0]
 
         response.headers["Access-Control-Allow-Credentials"] = "true"
-        response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, , PUT, DELETE, OPTIONS"
         response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
         app.logger.debug(f"CORS Headers Set: {response.headers}")
         return response
@@ -55,6 +57,7 @@ def create_app():
     app.logger.info("Initializing extensions")
     db.init_app(app)
     Migrate(app, db)
+    bcrypt.init_app(app)
     JWTManager(app)
 
     # Log JWT configuration for debugging
@@ -67,11 +70,13 @@ def create_app():
     from app.routes.dashboard import dashboard_bp
     from app.routes.visits import visit_bp
     from app.routes.users import user_bp
+    from app.routes.notification import notification_bp
 
     app.register_blueprint(user_bp, url_prefix="/user")
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(dashboard_bp, url_prefix="/dashboard")
     app.register_blueprint(visit_bp, url_prefix="/visit")
+    app.register_blueprint(notification_bp, url_prefix="/notification")
 
     # Create database tables
     # with app.app_context():
