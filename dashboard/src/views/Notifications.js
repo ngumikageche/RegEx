@@ -1,320 +1,211 @@
-import React from "react";
-// react plugin for creating notifications over the dashboard
-import NotificationAlert from "react-notification-alert";
-// react-bootstrap components
+// src/views/Notifications.js
+import React, { useState, useEffect, useContext } from "react";
+import { useNavigate } from "react-router-dom";
 import {
-  Alert,
-  Badge,
-  Button,
   Card,
-  Modal,
-  Navbar,
-  Nav,
   Container,
   Row,
   Col,
+  Table,
+  Alert,
+  Spinner,
+  Button,
 } from "react-bootstrap";
+import { UserContext } from "../context/UserContext";
 
 function Notifications() {
-  const [showModal, setShowModal] = React.useState(false);
-  const notificationAlertRef = React.useRef(null);
-  const notify = (place) => {
-    var color = Math.floor(Math.random() * 5 + 1);
-    var type;
-    switch (color) {
-      case 1:
-        type = "primary";
-        break;
-      case 2:
-        type = "success";
-        break;
-      case 3:
-        type = "danger";
-        break;
-      case 4:
-        type = "warning";
-        break;
-      case 5:
-        type = "info";
-        break;
-      default:
-        break;
+  const { user, fetchUser } = useContext(UserContext);
+  const navigate = useNavigate();
+  const token = localStorage.getItem("auth_token");
+
+  // State for notifications
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  // Fetch notifications on mount
+  useEffect(() => {
+    if (!token) {
+      navigate("/auth/login", { replace: true });
+      return;
     }
-    var options = {};
-    options = {
-      place: place,
-      message: (
-        <div>
-          <div>
-            Welcome to <b>Light Bootstrap Dashboard React</b> - a beautiful
-            freebie for every web developer.
-          </div>
-        </div>
-      ),
-      type: type,
-      icon: "nc-icon nc-bell-55",
-      autoDismiss: 7,
+
+    const fetchData = async () => {
+      try {
+        if (!user) {
+          await fetchUser(token);
+        }
+      } catch (err) {
+        console.error("Failed to fetch user data:", err);
+        setError("Failed to load user data. Please log in again.");
+        localStorage.removeItem("auth_token");
+        localStorage.removeItem("user_role");
+        navigate("/auth/login", { replace: true });
+        return;
+      }
+
+      await fetchNotifications();
     };
-    notificationAlertRef.current.notificationAlert(options);
+
+    fetchData();
+  }, [user, fetchUser, token, navigate]);
+
+  // Function to fetch notifications
+  const fetchNotifications = async () => {
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch("http://127.0.0.1:5000/notification/", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        setNotifications(data.notifications);
+      } else {
+        setError(data.error || "Failed to fetch notifications.");
+      }
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+      setError("An error occurred while fetching notifications.");
+    } finally {
+      setLoading(false);
+    }
   };
-  return (
-    <>
-      <div className="rna-container">
-        <NotificationAlert ref={notificationAlertRef} />
-      </div>
-      <Container fluid>
-        <Card>
-          <Card.Header>
-            <Card.Title as="h4">Notifications</Card.Title>
-            <p className="card-category">
-              Handcrafted by our friend and colleague{" "}
-              <a
-                href="https://github.com/EINazare"
-                rel="noopener noreferrer"
-                target="_blank"
-              >
-                Nazare Emanuel-Ioan
-              </a>
-              . Please checkout the{" "}
-              <a
-                href="https://github.com/creativetimofficial/react-notification-alert"
-                rel="noopener noreferrer"
-                target="_blank"
-              >
-                full documentation.
-              </a>
-            </p>
-          </Card.Header>
-          <Card.Body>
-            <Row>
-              <Col md="6">
-                <h5>
-                  <small>Notifications Style</small>
-                </h5>
-                <Alert variant="info">
-                  <span>This is a plain notification</span>
-                </Alert>
-                <Alert variant="info">
-                  <button
-                    aria-hidden={true}
-                    className="close"
-                    data-dismiss="alert"
-                    type="button"
-                  >
-                    <i className="nc-icon nc-simple-remove"></i>
-                  </button>
-                  <span>This is a notification with close button.</span>
-                </Alert>
-                <Alert className="alert-with-icon" variant="info">
-                  <button
-                    aria-hidden={true}
-                    className="close"
-                    data-dismiss="alert"
-                    type="button"
-                  >
-                    <i className="nc-icon nc-simple-remove"></i>
-                  </button>
-                  <span
-                    data-notify="icon"
-                    className="nc-icon nc-bell-55"
-                  ></span>
-                  <span>
-                    This is a notification with close button and icon.
-                  </span>
-                </Alert>
-                <Alert className="alert-with-icon" variant="info">
-                  <button
-                    aria-hidden={true}
-                    className="close"
-                    data-dismiss="alert"
-                    type="button"
-                  >
-                    <i className="nc-icon nc-simple-remove"></i>
-                  </button>
-                  <span
-                    data-notify="icon"
-                    className="nc-icon nc-bell-55"
-                  ></span>
-                  <span>
-                    This is a notification with close button and icon and have
-                    many lines. You can see that the icon and the close button
-                    are always vertically aligned. This is a beautiful
-                    notification. So you don't have to worry about the style.
-                  </span>
-                </Alert>
-              </Col>
-              <Col md="6">
-                <h5>
-                  <small>Notification States</small>
-                </h5>
-                <Alert variant="primary">
-                  <button
-                    aria-hidden={true}
-                    className="close"
-                    data-dismiss="alert"
-                    type="button"
-                  >
-                    <i className="nc-icon nc-simple-remove"></i>
-                  </button>
-                  <span>
-                    <b>Primary -</b>
-                    This is a regular notification made with ".alert-primary"
-                  </span>
-                </Alert>
-                <Alert variant="info">
-                  <button
-                    aria-hidden={true}
-                    className="close"
-                    data-dismiss="alert"
-                    type="button"
-                  >
-                    <i className="nc-icon nc-simple-remove"></i>
-                  </button>
-                  <span>
-                    <b>Info -</b>
-                    This is a regular notification made with ".alert-info"
-                  </span>
-                </Alert>
-                <Alert variant="success">
-                  <button
-                    aria-hidden={true}
-                    className="close"
-                    data-dismiss="alert"
-                    type="button"
-                  >
-                    <i className="nc-icon nc-simple-remove"></i>
-                  </button>
-                  <span>
-                    <b>Success -</b>
-                    This is a regular notification made with ".alert-success"
-                  </span>
-                </Alert>
-                <Alert variant="warning">
-                  <button
-                    aria-hidden={true}
-                    className="close"
-                    data-dismiss="alert"
-                    type="button"
-                  >
-                    <i className="nc-icon nc-simple-remove"></i>
-                  </button>
-                  <span>
-                    <b>Warning -</b>
-                    This is a regular notification made with ".alert-warning"
-                  </span>
-                </Alert>
-                <Alert variant="danger">
-                  <button
-                    aria-hidden={true}
-                    className="close"
-                    data-dismiss="alert"
-                    type="button"
-                  >
-                    <i className="nc-icon nc-simple-remove"></i>
-                  </button>
-                  <span>
-                    <b>Danger -</b>
-                    This is a regular notification made with ".alert-danger"
-                  </span>
-                </Alert>
-              </Col>
-            </Row>
-            <br></br>
-            <br></br>
-            <div className="places-buttons">
-              <Row>
-                <Col className="offset-md-3 text-center" md="6">
-                  <Card.Title as="h4">Notifications Places</Card.Title>
-                  <p className="card-category">
-                    <small>Click to view notifications</small>
-                  </p>
-                </Col>
-              </Row>
-              <Row className="justify-content-center">
-                <Col lg="3" md="3">
-                  <Button block onClick={() => notify("tl")} variant="default">
-                    Top Left
-                  </Button>
-                </Col>
-                <Col lg="3" md="3">
-                  <Button block onClick={() => notify("tc")} variant="default">
-                    Top Center
-                  </Button>
-                </Col>
-                <Col lg="3" md="3">
-                  <Button block onClick={() => notify("tr")} variant="default">
-                    Top Right
-                  </Button>
-                </Col>
-              </Row>
-              <Row className="justify-content-center">
-                <Col lg="3" md="3">
-                  <Button block onClick={() => notify("bl")} variant="default">
-                    Bottom Left
-                  </Button>
-                </Col>
-                <Col lg="3" md="3">
-                  <Button block onClick={() => notify("bc")} variant="default">
-                    Bottom Center
-                  </Button>
-                </Col>
-                <Col lg="3" md="3">
-                  <Button block onClick={() => notify("br")} variant="default">
-                    Bottom Right
-                  </Button>
-                </Col>
-              </Row>
-            </div>
-            <Row>
-              <Col className="text-center" md="12">
-                <h4 className="title">Modal</h4>
-                <Button
-                  className="btn-fill btn-wd"
-                  variant="info"
-                  onClick={() => setShowModal(true)}
-                >
-                  Launch Modal Mini
-                </Button>
-              </Col>
-            </Row>
-          </Card.Body>
-        </Card>
-        {/* Mini Modal */}
-        <Modal
-          className="modal-mini modal-primary"
-          show={showModal}
-          onHide={() => setShowModal(false)}
-        >
-          <Modal.Header className="justify-content-center">
-            <div className="modal-profile">
-              <i className="nc-icon nc-bulb-63"></i>
-            </div>
-          </Modal.Header>
-          <Modal.Body className="text-center">
-            <p>Always have an access to your profile</p>
-          </Modal.Body>
-          <div className="modal-footer">
-            <Button
-              className="btn-simple"
-              type="button"
-              variant="link"
-              onClick={() => setShowModal(false)}
-            >
-              Back
-            </Button>
-            <Button
-              className="btn-simple"
-              type="button"
-              variant="link"
-              onClick={() => setShowModal(false)}
-            >
-              Close
-            </Button>
-          </div>
-        </Modal>
-        {/* End Modal */}
+
+  // Handle mark as read
+  const handleMarkAsRead = async (notificationId) => {
+    try {
+      const response = await fetch(`http://127.0.0.1:5000/notification/${notificationId}/read`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        setNotifications(
+          notifications.map((notification) =>
+            notification.id === notificationId ? { ...notification, is_read: true } : notification
+          )
+        );
+      } else {
+        setError(data.error || "Failed to mark notification as read.");
+      }
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+      setError("An error occurred while marking the notification as read.");
+    }
+  };
+
+  // Handle delete notification
+  const handleDelete = async (notificationId) => {
+    if (!window.confirm("Are you sure you want to delete this notification?")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`http://127.0.0.1:5000/notification/${notificationId}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        setNotifications(notifications.filter((notification) => notification.id !== notificationId));
+      } else {
+        setError(data.error || "Failed to delete notification.");
+      }
+    } catch (error) {
+      console.error("Error deleting notification:", error);
+      setError("An error occurred while deleting the notification.");
+    }
+  };
+
+  if (loading) {
+    return (
+      <Container className="mt-5 text-center">
+        <Spinner animation="border" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </Spinner>
       </Container>
-    </>
+    );
+  }
+
+  return (
+    <Container fluid>
+      <Row>
+        <Col md="12">
+          <Card className="strpied-tabled-with-hover">
+            <Card.Header>
+              <Card.Title as="h4">Notifications</Card.Title>
+              <p className="card-category">Your recent notifications</p>
+            </Card.Header>
+            <Card.Body className="table-full-width table-responsive px-0">
+              {error && (
+                <Alert variant="danger" onClose={() => setError("")} dismissible>
+                  {error}
+                </Alert>
+              )}
+              {notifications.length === 0 ? (
+                <p className="text-center">No notifications found.</p>
+              ) : (
+                <Table className="table-hover table-striped">
+                  <thead>
+                    <tr>
+                      <th className="border-0">ID</th>
+                      <th className="border-0">Message</th>
+                      <th className="border-0">Created At</th>
+                      <th className="border-0">Status</th>
+                      <th className="border-0">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {notifications.map((notification) => (
+                      <tr key={notification.id}>
+                        <td>{notification.id}</td>
+                        <td>{notification.message}</td>
+                        <td>{notification.created_at}</td>
+                        <td>{notification.is_read ? "Read" : "Unread"}</td>
+                        <td>
+                          {!notification.is_read && (
+                            <Button
+                              variant="info"
+                              size="sm"
+                              onClick={() => handleMarkAsRead(notification.id)}
+                              className="me-2"
+                            >
+                              Mark as Read
+                            </Button>
+                          )}
+                          <Button
+                            variant="danger"
+                            size="sm"
+                            onClick={() => handleDelete(notification.id)}
+                          >
+                            Delete
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+              )}
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+    </Container>
   );
 }
 

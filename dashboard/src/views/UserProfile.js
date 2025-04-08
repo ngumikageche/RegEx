@@ -40,6 +40,7 @@ function User() {
 
   // State for UI feedback
   const [loading, setLoading] = useState(false);
+  const [loadingUserCard, setLoadingUserCard] = useState(true); // New state for user card loading
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -51,12 +52,18 @@ function User() {
     }
 
     if (!user) {
-      fetchUser(token).catch((err) => {
-        console.error("Failed to fetch user data:", err);
-        setError("Failed to load user data. Please log in again.");
-        localStorage.removeItem("auth_token");
-        navigate("/auth/login", { replace: true });
-      });
+      setLoadingUserCard(true); // Set loading state for user card
+      fetchUser(token)
+        .then(() => {
+          setLoadingUserCard(false); // Data fetched successfully
+        })
+        .catch((err) => {
+          console.error("Failed to fetch user data:", err);
+          setError("Failed to load user data. Please log in again.");
+          setLoadingUserCard(false); // Stop loading even if fetch fails
+          localStorage.removeItem("auth_token");
+          navigate("/auth/login", { replace: true });
+        });
     } else {
       // Populate form with user data from the backend
       setUsername(user.username || "");
@@ -69,6 +76,7 @@ function User() {
       setCountry(user.country || "");
       setPostalCode(user.postal_code || "");
       setAboutMe(user.about_me || "");
+      setLoadingUserCard(false); // Data is already available
     }
   }, [user, fetchUser, token, navigate]);
 
@@ -82,7 +90,6 @@ function User() {
     const updatedData = {
       username,
       email,
-      ...(user.role === "admin" && { role }), // Only include role if user is admin
       firstName,
       lastName,
       address,
@@ -93,7 +100,7 @@ function User() {
     };
 
     try {
-      const response = await fetch(`http://127.0.0.1:5000/users/${user.id}`, {
+      const response = await fetch("http://127.0.0.1:5000/user/me", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -169,7 +176,7 @@ function User() {
     }
   };
 
-  if (!user) {
+  if (!user && loadingUserCard) {
     return (
       <Container className="mt-5 text-center">
         <Spinner animation="border" role="status">
@@ -328,6 +335,7 @@ function User() {
                           >
                             <option value="doctor">Doctor</option>
                             <option value="admin">Admin</option>
+                            <option value="marketer">Marketer</option>
                           </Form.Control>
                         </Form.Group>
                       </Col>
@@ -436,53 +444,63 @@ function User() {
           </Col>
           <Col md="4">
             <Card className="card-user">
-              <div className="card-image">
-                <img
-                  alt="..."
-                  src={require("../assets/img/photo-1431578500526-4d9613015464.jpeg")}
-                />
-              </div>
-              <Card.Body>
-                <div className="author">
-                  <a href="#pablo" onClick={(e) => e.preventDefault()}>
+              {loadingUserCard ? (
+                <Card.Body className="text-center">
+                  <Spinner animation="border" role="status">
+                    <span className="visually-hidden">Loading...</span>
+                  </Spinner>
+                </Card.Body>
+              ) : (
+                <>
+                  <div className="card-image">
                     <img
                       alt="..."
-                      className="avatar border-gray"
-                      src={require("../assets/img/faces/face-3.jpg")}
+                      src={require("../assets/img/photo-1431578500526-4d9613015464.jpeg")}
                     />
-                    <h5 className="title">{`${firstName || "User"} ${lastName || ""}`}</h5>
-                  </a>
-                  <p className="description">{username}</p>
-                </div>
-                <p className="description text-center">{aboutMe || "Tell us about yourself!"}</p>
-              </Card.Body>
-              <hr />
-              <div className="button-container mr-auto ml-auto">
-                <Button
-                  className="btn-simple btn-icon"
-                  href="#pablo"
-                  onClick={(e) => e.preventDefault()}
-                  variant="link"
-                >
-                  <i className="fab fa-facebook-square"></i>
-                </Button>
-                <Button
-                  className="btn-simple btn-icon"
-                  href="#pablo"
-                  onClick={(e) => e.preventDefault()}
-                  variant="link"
-                >
-                  <i className="fab fa-twitter"></i>
-                </Button>
-                <Button
-                  className="btn-simple btn-icon"
-                  href="#pablo"
-                  onClick={(e) => e.preventDefault()}
-                  variant="link"
-                >
-                  <i className="fab fa-google-plus-square"></i>
-                </Button>
-              </div>
+                  </div>
+                  <Card.Body>
+                    <div className="author">
+                      <a href="#pablo" onClick={(e) => e.preventDefault()}>
+                        <img
+                          alt="..."
+                          className="avatar border-gray"
+                          src={require("../assets/img/faces/face-3.jpg")}
+                        />
+                        <h5 className="title">{`${firstName || "User"} ${lastName || ""}`}</h5>
+                      </a>
+                      <p className="description">{username}</p>
+                    </div>
+                    <p className="description text-center">{aboutMe || "Tell us about yourself!"}</p>
+                  </Card.Body>
+                  <hr />
+                  <div className="button-container mr-auto ml-auto">
+                    <Button
+                      className="btn-simple btn-icon"
+                      href="#pablo"
+                      onClick={(e) => e.preventDefault()}
+                      variant="link"
+                    >
+                      <i className="fab fa-facebook-square"></i>
+                    </Button>
+                    <Button
+                      className="btn-simple btn-icon"
+                      href="#pablo"
+                      onClick={(e) => e.preventDefault()}
+                      variant="link"
+                    >
+                      <i className="fab fa-twitter"></i>
+                    </Button>
+                    <Button
+                      className="btn-simple btn-icon"
+                      href="#pablo"
+                      onClick={(e) => e.preventDefault()}
+                      variant="link"
+                    >
+                      <i className="fab fa-google-plus-square"></i>
+                    </Button>
+                  </div>
+                </>
+              )}
             </Card>
           </Col>
         </Row>

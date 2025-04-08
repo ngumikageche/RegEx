@@ -6,12 +6,13 @@ export const UserContext = createContext();
 
 export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true); // Add loading state
   const navigate = useNavigate();
 
   const fetchUser = async (token) => {
     try {
       console.log("Fetching user with token:", token);
-      const response = await fetch("http://127.0.0.1:5000/auth/protected", {
+      const response = await fetch("http://127.0.0.1:5000/user/me", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -26,16 +27,15 @@ export const UserProvider = ({ children }) => {
       if (response.ok) {
         setUser(userData);
         console.log("User data set:", userData);
+        localStorage.setItem("user_role", userData.role);
       } else {
-        console.error("Failed to fetch user data:", userData.msg || userData.error);
-        if (response.status === 422) {
-          // Invalid token, redirect to login
+        console.error("Failed to fetch user data:", userData.error || userData.msg);
+        if (response.status === 401 || response.status === 422) {
           localStorage.removeItem("auth_token");
           localStorage.removeItem("user_role");
           setUser(null);
           navigate("/auth/login", { replace: true });
         } else {
-          // Fallback user data
           setUser({
             id: null,
             username: "Guest",
@@ -46,16 +46,26 @@ export const UserProvider = ({ children }) => {
       }
     } catch (error) {
       console.error("Error fetching user:", error);
-      // Network error or other issue, redirect to login
       localStorage.removeItem("auth_token");
       localStorage.removeItem("user_role");
       setUser(null);
       navigate("/auth/login", { replace: true });
+    } finally {
+      setLoading(false); // Set loading to false after fetch
     }
   };
 
+  useEffect(() => {
+    const token = localStorage.getItem("auth_token");
+    if (token) {
+      fetchUser(token);
+    } else {
+      setLoading(false);
+    }
+  }, []);
+
   return (
-    <UserContext.Provider value={{ user, setUser, fetchUser }}>
+    <UserContext.Provider value={{ user, setUser, fetchUser, loading }}>
       {children}
     </UserContext.Provider>
   );

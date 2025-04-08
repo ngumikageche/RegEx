@@ -8,7 +8,10 @@ import Maps from "views/Maps.js";
 import Notifications from "views/Notifications.js";
 import Upgrade from "views/Upgrade.js";
 import Register from "views/Register";
-
+import MyProfile from "views/MyProfile";
+import UserList from "views/UserList"; // Import UserList component
+import LogVisit from "views/LogVisit"; // Import LogVisit component
+import VisitList from "views/VisitList"; // Import VisitList component
 const dashboardRoutes = [
   {
     upgrade: true,
@@ -73,6 +76,35 @@ const dashboardRoutes = [
     icon: "nc-icon nc-simple-add",
     component: Register, // Use the AddUser component
     layout: "/admin",  // Change layout to "/admin"
+  },
+  {
+    path: "/my-profile",
+    name: "My Profile",
+    icon: "nc-icon nc-circle-09",
+    component: MyProfile,
+    layout: "/admin"
+    
+  },
+  {
+    path: "/user-list",
+    name: "User List",
+    icon: "nc-icon nc-circle-09",
+    component: UserList,
+    layout: "/admin"
+  },
+  {
+    path: "/log-visit",
+    name: "Log Visit",
+    icon: "nc-icon nc-circle-09",
+    component: LogVisit,
+    layout: "/admin"
+  },
+  {
+    path: "/visit-list",
+    name: "Visit List",
+    icon: "nc-icon nc-circle-09",
+    component: VisitList,
+    layout: "/admin"
   }
 ];
 
