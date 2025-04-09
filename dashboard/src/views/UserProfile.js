@@ -1,4 +1,3 @@
-// src/views/User.js
 import React, { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -6,8 +5,6 @@ import {
   Button,
   Card,
   Form,
-  Navbar,
-  Nav,
   Container,
   Row,
   Col,
@@ -16,7 +13,7 @@ import {
 } from "react-bootstrap";
 import { UserContext } from "../context/UserContext";
 
-function User() {
+function MyProfile() {
   const { user, fetchUser } = useContext(UserContext);
   const navigate = useNavigate();
   const token = localStorage.getItem("auth_token");
@@ -40,7 +37,7 @@ function User() {
 
   // State for UI feedback
   const [loading, setLoading] = useState(false);
-  const [loadingUserCard, setLoadingUserCard] = useState(true); // New state for user card loading
+  const [loadingUserCard, setLoadingUserCard] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -52,20 +49,19 @@ function User() {
     }
 
     if (!user) {
-      setLoadingUserCard(true); // Set loading state for user card
+      setLoadingUserCard(true);
       fetchUser(token)
         .then(() => {
-          setLoadingUserCard(false); // Data fetched successfully
+          setLoadingUserCard(false);
         })
         .catch((err) => {
           console.error("Failed to fetch user data:", err);
           setError("Failed to load user data. Please log in again.");
-          setLoadingUserCard(false); // Stop loading even if fetch fails
+          setLoadingUserCard(false);
           localStorage.removeItem("auth_token");
           navigate("/auth/login", { replace: true });
         });
     } else {
-      // Populate form with user data from the backend
       setUsername(user.username || "");
       setEmail(user.email || "");
       setRole(user.role || "");
@@ -76,7 +72,7 @@ function User() {
       setCountry(user.country || "");
       setPostalCode(user.postal_code || "");
       setAboutMe(user.about_me || "");
-      setLoadingUserCard(false); // Data is already available
+      setLoadingUserCard(false);
     }
   }, [user, fetchUser, token, navigate]);
 
@@ -112,8 +108,7 @@ function User() {
       const data = await response.json();
       if (response.ok) {
         setSuccess("Profile updated successfully!");
-        // Refresh user data
-        fetchUser(token);
+        fetchUser(token); // Refresh user data
       } else {
         setError(data.error || "Failed to update profile.");
       }
@@ -509,4 +504,4 @@ function User() {
   );
 }
 
-export default User;
+export default MyProfile;

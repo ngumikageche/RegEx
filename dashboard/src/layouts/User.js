@@ -6,20 +6,18 @@ import Footer from "components/Footer/Footer";
 import Sidebar from "components/Sidebar/Sidebar";
 import FixedPlugin from "components/FixedPlugin/FixedPlugin.js";
 
-import routes from "../routes.js"; // Import the single routes file
+import routes from "../routes.js";
 
-import sidebarImage from "assets/img/sidebar-3.jpg"; // This image should exist
-
-function Admin() {
-  const [image, setImage] = React.useState(sidebarImage);
-  const [color, setColor] = React.useState("black");
-  const [hasImage, setHasImage] = React.useState(true);
+function User() {
+  const [image, setImage] = React.useState("");
+  const [color, setColor] = React.useState("blue");
+  const [hasImage, setHasImage] = React.useState(false);
   const location = useLocation();
   const mainPanel = React.useRef(null);
 
   const getRoutes = (routes) => {
     return routes.map((prop, key) => {
-      if (prop.layout === "/admin") {
+      if (prop.layout === "/user") {
         const Component = prop.component;
         return <Route path={prop.path} element={<Component />} key={key} />;
       }
@@ -42,9 +40,14 @@ function Admin() {
   return (
     <>
       <div className="wrapper">
-        <Sidebar color={color} image={hasImage ? image : ""} routes={routes} />
+        <Sidebar
+          color={color}
+          image={hasImage ? image : ""}
+          routes={routes}
+          layout="user"
+        />
         <div className="main-panel" ref={mainPanel}>
-          <AdminNavbar />
+          <AdminNavbar layout="user" />
           <div className="content">
             <Routes>{getRoutes(routes)}</Routes>
           </div>
@@ -63,4 +66,4 @@ function Admin() {
   );
 }
 
-export default Admin;
+export default User;

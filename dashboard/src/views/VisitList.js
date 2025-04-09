@@ -1,4 +1,3 @@
-// src/views/VisitList.js
 import React, { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -36,7 +35,7 @@ function VisitList() {
   const [editingVisit, setEditingVisit] = useState(null);
   const [editDoctorName, setEditDoctorName] = useState("");
   const [editLocation, setEditLocation] = useState("");
-  const [editVisitDate, setEditVisitDate] = useState(null);  // Changed to null for Datetime
+  const [editVisitDate, setEditVisitDate] = useState(null);
   const [editNotes, setEditNotes] = useState("");
 
   // Fetch visits on mount
@@ -86,6 +85,8 @@ function VisitList() {
         if (marketerId) params.append("marketer_id", marketerId);
         if (doctorName) params.append("doctor_name", doctorName);
         url += `?${params.toString()}`;
+      } else if (user.role === "marketer") {
+        url += `?marketer_id=${user.id}`;
       }
 
       const response = await fetch(url, {
@@ -121,7 +122,7 @@ function VisitList() {
     setEditingVisit(visit);
     setEditDoctorName(visit.doctor_name);
     setEditLocation(visit.location);
-    setEditVisitDate(moment(visit.visit_date, "YYYY-MM-DD HH:mm:ss"));  // Parse existing date
+    setEditVisitDate(moment(visit.visit_date, "YYYY-MM-DD HH:mm:ss"));
     setEditNotes(visit.notes);
   };
 
@@ -295,11 +296,11 @@ function VisitList() {
                   <thead>
                     <tr>
                       <th className="border-0">ID</th>
-                      <th className="border-0">Marketer</th>
-                      <th className="border-0">Doctor Name</th>
+                      <th className="border-0">Doctor</th>
                       <th className="border-0">Location</th>
-                      <th className="border-0">Visit Date</th>
+                      <th className="border-0">Date</th>
                       <th className="border-0">Notes</th>
+                      {user.role === "admin" && <th className="border-0">Marketer</th>}
                       <th className="border-0">Actions</th>
                     </tr>
                   </thead>
@@ -307,22 +308,19 @@ function VisitList() {
                     {visits.map((visit) => (
                       <tr key={visit.id}>
                         <td>{visit.id}</td>
-                        <td>{visit.marketer_name || `ID: ${visit.marketer_id}`}</td>
                         <td>{visit.doctor_name}</td>
                         <td>{visit.location}</td>
-                        <td>{visit.visit_date}</td>
-                        <td>{visit.notes || "N/A"}</td>
+                        <td>{moment(visit.visit_date).format("YYYY-MM-DD HH:mm")}</td>
+                        <td>{visit.notes}</td>
+                        {user.role === "admin" && <td>{visit.marketer_name}</td>}
                         <td>
-                          {user.role === "marketer" && (
-                            <Button
-                              variant="info"
-                              size="sm"
-                              onClick={() => handleEdit(visit)}
-                              className="me-2"
-                            >
-                              Edit
-                            </Button>
-                          )}
+                          <Button
+                            variant="warning"
+                            size="sm"
+                            onClick={() => handleEdit(visit)}
+                          >
+                            Edit
+                          </Button>{" "}
                           <Button
                             variant="danger"
                             size="sm"
@@ -340,91 +338,6 @@ function VisitList() {
           </Card>
         </Col>
       </Row>
-
-      {/* Edit Visit Modal */}
-      {editingVisit && (
-        <div className="modal show d-block" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
-          <div className="modal-dialog">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Edit Visit</h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => setEditingVisit(null)}
-                ></button>
-              </div>
-              <Form onSubmit={handleUpdate}>
-                <div className="modal-body">
-                  <Form.Group className="mb-3">
-                    <Form.Label>Doctor Name</Form.Label>
-                    <Form.Control
-                      value={editDoctorName}
-                      onChange={(e) => setEditDoctorName(e.target.value)}
-                      placeholder="Enter doctor's name"
-                      required
-                    />
-                  </Form.Group>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Location</Form.Label>
-                    <Form.Control
-                      value={editLocation}
-                      onChange={(e) => setEditLocation(e.target.value)}
-                      placeholder="Enter location"
-                      required
-                    />
-                  </Form.Group>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Visit Date and Time</Form.Label>
-                    <Datetime
-                      value={editVisitDate}
-                      onChange={(date) => setEditVisitDate(date)}
-                      inputProps={{
-                        placeholder: "Select date and time",
-                        required: true,
-                      }}
-                      timeFormat="HH:mm:ss"
-                      dateFormat="YYYY-MM-DD"
-                    />
-                  </Form.Group>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Notes</Form.Label>
-                    <Form.Control
-                      value={editNotes}
-                      onChange={(e) => setEditNotes(e.target.value)}
-                      placeholder="Enter any notes (optional)"
-                      as="textarea"
-                      rows="3"
-                    />
-                  </Form.Group>
-                </div>
-                <div className="modal-footer">
-                  <Button variant="secondary" onClick={() => setEditingVisit(null)}>
-                    Cancel
-                  </Button>
-                  <Button variant="info" type="submit" disabled={loading}>
-                    {loading ? (
-                      <>
-                        <Spinner
-                          as="span"
-                          animation="border"
-                          size="sm"
-                          role="status"
-                          aria-hidden="true"
-                          className="me-2"
-                        />
-                        Updating...
-                      </>
-                    ) : (
-                      "Update Visit"
-                    )}
-                  </Button>
-                </div>
-              </Form>
-            </div>
-          </div>
-        </div>
-      )}
     </Container>
   );
 }

@@ -1,5 +1,5 @@
 # app/routes/visit.py
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime
 from database import db
@@ -10,16 +10,18 @@ from app.models.notification import Notification
 visit_bp = Blueprint("visit", __name__, url_prefix="/visits")
 
 # Helper function to create a notification
-def create_notification(user_id, message):
+def create_notification(user_id, message, commit=False):
     notification = Notification(user_id=user_id, message=message)
     db.session.add(notification)
+    if commit:
+        db.session.commit()
 
 @visit_bp.route("/", methods=["POST"])
 @jwt_required()
 def log_visit():
     current_user_id = get_jwt_identity()
     user = User.query.get(current_user_id)
-
+    
     if not user:
         return jsonify({"error": "User not found."}), 404
 
@@ -33,7 +35,11 @@ def log_visit():
     notes = data.get("notes", "")
 
     if not doctor_name or not location or not visit_date:
-        return jsonify({"error": "Doctor name, location, and visit date are required."}), 400
+        missing_fields = []
+        if not doctor_name: missing_fields.append("doctor_name")
+        if not location: missing_fields.append("location")
+        if not visit_date: missing_fields.append("visit_date")
+        return jsonify({"error": f"Missing required fields: {', '.join(missing_fields)}."}), 400
 
     try:
         visit_date = datetime.strptime(visit_date, "%Y-%m-%d %H:%M:%S")
@@ -54,7 +60,8 @@ def log_visit():
     # Notify the marketer
     create_notification(
         user_id=current_user_id,
-        message=f"You logged a visit with {doctor_name} at {location} on {visit_date.strftime('%Y-%m-%d %H:%M:%S')}."
+        message=f"You logged a visit with {doctor_name} at {location} on {visit_date.strftime('%Y-%m-%d %H:%M:%S')}.",
+        commit=True
     )
 
     # Notify all admins
@@ -62,12 +69,12 @@ def log_visit():
     for admin in admins:
         create_notification(
             user_id=admin.id,
-            message=f"Marketer {user.username} logged a visit with {doctor_name} at {location} on {visit_date.strftime('%Y-%m-%d %H:%M:%S')}."
+            message=f"Marketer {user.username} logged a visit with {doctor_name} at {location} on {visit_date.strftime('%Y-%m-%d %H:%M:%S')}.",
+            commit=True
         )
 
-    db.session.commit()
-
     return jsonify({"message": "Visit logged successfully"}), 201
+
 @visit_bp.route("/", methods=["GET"])
 @jwt_required()
 def get_visits():
@@ -141,9 +148,7 @@ def update_visit(visit_id):
     if user.role != "marketer":
         return jsonify({"error": "Unauthorized. Only marketers can update visits."}), 403
 
-    visit = Visit.query.get(visit_id)
-    if not visit:
-        return jsonify({"error": "Visit not found."}), 404
+    visit = Visit.query.get_or_404(visit_id)
 
     if visit.marketer_id != current_user_id:
         return jsonify({"error": "Unauthorized. You can only update your own visits."}), 403
@@ -166,6 +171,9 @@ def update_visit(visit_id):
 @visit_bp.route("/<int:visit_id>", methods=["DELETE"])
 @jwt_required()
 def delete_visit(visit_id):
+    """
+    Deletes a specific visit. Only the marketer who logged the visit or an admin can delete it.
+    """
     current_user_id = get_jwt_identity()
     user = User.query.get(current_user_id)
 
@@ -175,9 +183,7 @@ def delete_visit(visit_id):
     if user.role not in ["marketer", "admin"]:
         return jsonify({"error": "Unauthorized. Only marketers or admins can delete visits."}), 403
 
-    visit = Visit.query.get(visit_id)
-    if not visit:
-        return jsonify({"error": "Visit not found."}), 404
+    visit = Visit.query.get_or_404(visit_id)
 
     if user.role == "marketer" and visit.marketer_id != current_user_id:
         return jsonify({"error": "Unauthorized. You can only delete your own visits."}), 403
@@ -195,7 +201,8 @@ def delete_visit(visit_id):
     if marketer and marketer.id != current_user_id:
         create_notification(
             user_id=marketer.id,
-            message=f"Your visit with {doctor_name} at {location} on {visit_date} was deleted by {user.username}."
+            message=f"Your visit with {doctor_name} at {location} on {visit_date} was deleted by {user.username}.",
+            commit=True
         )
 
     db.session.commit()

@@ -9,7 +9,7 @@ const Register = () => {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("doctor");
+  const [role, setRole] = useState("user");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
@@ -99,7 +99,7 @@ const Register = () => {
         setUsername("");
         setEmail("");
         setPassword("");
-        setRole("doctor");
+        setRole("user");
         setTimeout(() => {
           navigate("/admin/dashboard", { replace: true });
         }, 2000);
@@ -186,7 +186,7 @@ const Register = () => {
                     onChange={(e) => setRole(e.target.value)}
                     disabled={loading}
                   >
-                    <option value="doctor">Doctor</option>
+                    <option value="user">User</option>
                     <option value="admin">Admin</option>
                   </Form.Control>
                 </Form.Group>

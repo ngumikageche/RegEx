@@ -28,7 +28,7 @@ def create_app():
     # Define allowed origins
     allowed_origins = [
         "http://localhost:3000",
-        "http://127.0.0.1:3000"
+        "http://127.0.0.1:3000","https://8174-102-215-77-42.ngrok-free.app"
     ]
 
     # Enable CORS with dynamic origin handling

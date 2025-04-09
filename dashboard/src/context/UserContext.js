@@ -1,13 +1,10 @@
-// src/context/UserContext.js
 import React, { createContext, useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 
 export const UserContext = createContext();
 
 export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true); // Add loading state
-  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
 
   const fetchUser = async (token) => {
     try {
@@ -25,22 +22,27 @@ export const UserProvider = ({ children }) => {
       console.log("Fetch user response data:", userData);
 
       if (response.ok) {
-        setUser(userData);
-        console.log("User data set:", userData);
-        localStorage.setItem("user_role", userData.role);
+        // Ensure the user object has a role; default to "user" if missing
+        const userWithRole = {
+          ...userData,
+          role: userData.role || "user", // Default to "user" if role is missing
+        };
+        setUser(userWithRole);
+        console.log("User data set:", userWithRole);
+        localStorage.setItem("user_role", userWithRole.role);
       } else {
         console.error("Failed to fetch user data:", userData.error || userData.msg);
         if (response.status === 401 || response.status === 422) {
           localStorage.removeItem("auth_token");
           localStorage.removeItem("user_role");
           setUser(null);
-          navigate("/auth/login", { replace: true });
+          throw new Error("Unauthorized or invalid token");
         } else {
           setUser({
             id: null,
             username: "Guest",
             email: "",
-            role: localStorage.getItem("user_role") || "user",
+            role: "user",
           });
         }
       }
@@ -49,17 +51,20 @@ export const UserProvider = ({ children }) => {
       localStorage.removeItem("auth_token");
       localStorage.removeItem("user_role");
       setUser(null);
-      navigate("/auth/login", { replace: true });
+      throw error;
     } finally {
-      setLoading(false); // Set loading to false after fetch
+      setLoading(false);
     }
   };
 
   useEffect(() => {
     const token = localStorage.getItem("auth_token");
     if (token) {
-      fetchUser(token);
+      fetchUser(token).catch((err) => {
+        console.error("Initial fetchUser failed:", err);
+      });
     } else {
+      setUser(null);
       setLoading(false);
     }
   }, []);
