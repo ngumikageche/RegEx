@@ -22,7 +22,7 @@ function LogVisit() {
   // State for form fields
   const [doctorName, setDoctorName] = useState("");
   const [location, setLocation] = useState("");
-  const [visitDate, setVisitDate] = useState(null); // Changed to null for Datetime
+  const [visitDate, setVisitDate] = useState(null);
   const [notes, setNotes] = useState("");
 
   // State for UI feedback
@@ -57,9 +57,6 @@ function LogVisit() {
         });
     } else {
       console.log("User data available:", user);
-      if (user.role !== "marketer") {
-        setError("Unauthorized. Only marketers can log visits.");
-      }
       setLoadingUser(false);
     }
   }, [user, fetchUser, token, navigate]);
@@ -103,7 +100,7 @@ function LogVisit() {
     console.log("Token:", token);
 
     try {
-      const response = await fetch("http://127.0.0.1:5000/visits/", {
+      const response = await fetch("http://127.0.0.1:5000/visit/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -150,7 +147,7 @@ function LogVisit() {
           <Card>
             <Card.Header>
               <Card.Title as="h4">Log a Doctor Visit</Card.Title>
-              <p className="card-category">For marketers only</p>
+              <p className="card-category">Record your visit details</p>
             </Card.Header>
             <Card.Body>
               {error && (
@@ -225,7 +222,7 @@ function LogVisit() {
                   className="btn-fill pull-right"
                   type="submit"
                   variant="info"
-                  disabled={loading || user.role !== "marketer"}
+                  disabled={loading}
                 >
                   {loading ? (
                     <>
