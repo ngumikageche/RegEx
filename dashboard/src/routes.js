@@ -13,14 +13,7 @@ import LogVisit from "views/LogVisit";
 import VisitList from "views/VisitList";
 
 const dashboardRoutes = [
-  {
-    upgrade: false,
-    path: "/upgrade",
-    name: "Upgrade to PRO",
-    icon: "nc-icon nc-alien-33",
-    component: Upgrade,
-    layout: "/admin",
-  },
+
   {
     path: "/dashboard",
     name: "Dashboard",
@@ -35,27 +28,7 @@ const dashboardRoutes = [
     component: Dashboard,
     layout: "/user",
   },
-  {
-    path: "/table",
-    name: "Table List",
-    icon: "nc-icon nc-notes",
-    component: TableList,
-    layout: "/admin",
-  },
-  {
-    path: "/typography",
-    name: "Typography",
-    icon: "nc-icon nc-paper-2",
-    component: Typography,
-    layout: "/admin",
-  },
-  {
-    path: "/icons",
-    name: "Icons",
-    icon: "nc-icon nc-atom",
-    component: Icons,
-    layout: "/admin",
-  },
+
   {
     path: "/maps",
     name: "Maps",
@@ -89,7 +62,7 @@ const dashboardRoutes = [
     name: "My Profile",
     icon: "nc-icon nc-circle-09",
     component: MyProfile,
-    layout: "/user",
+    layout: "/admin",
   },
   {
     path: "/log-visit",
@@ -97,6 +70,13 @@ const dashboardRoutes = [
     icon: "nc-icon nc-circle-09",
     component: LogVisit,
     layout: "/user",
+  },
+  {
+    path: "/log-visit",
+    name: "Log Visit",
+    icon: "nc-icon nc-circle-09",
+    component: LogVisit,
+    layout: "/admin",
   },
   {
     path: "/visit-list",

@@ -28,7 +28,7 @@ function VisitList() {
   // State for admin filters
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [marketerId, setMarketerId] = useState("");
+  const [userIdFilter, setUserIdFilter] = useState("");
   const [doctorName, setDoctorName] = useState("");
 
   // State for editing a visit
@@ -59,12 +59,6 @@ function VisitList() {
         return;
       }
 
-      if (user && !["marketer", "admin"].includes(user.role)) {
-        setError("Unauthorized. Only marketers and admins can view visits.");
-        setLoading(false);
-        return;
-      }
-
       await fetchVisits();
     };
 
@@ -82,12 +76,13 @@ function VisitList() {
         const params = new URLSearchParams();
         if (startDate) params.append("start_date", startDate);
         if (endDate) params.append("end_date", endDate);
-        if (marketerId) params.append("marketer_id", marketerId);
+        if (userIdFilter) params.append("user_id", userIdFilter);
         if (doctorName) params.append("doctor_name", doctorName);
-        url += `?${params.toString()}`;
-      } else if (user.role === "marketer") {
-        url += `?marketer_id=${user.id}`;
+        if (params.toString()) {
+          url += `?${params.toString()}`;
+        }
       }
+      // Non-admin users don't need a user_id parameter; the backend handles the filtering
 
       const response = await fetch(url, {
         method: "GET",
@@ -217,15 +212,91 @@ function VisitList() {
 
   return (
     <Container fluid>
+      {editingVisit && (
+        <Row className="mb-4">
+          <Col md="12">
+            <Card>
+              <Card.Header>
+                <Card.Title as="h4">Edit Visit</Card.Title>
+              </Card.Header>
+              <Card.Body>
+                <Form onSubmit={handleUpdate}>
+                  <Row>
+                    <Col md="6">
+                      <Form.Group>
+                        <label>Doctor Name</label>
+                        <Form.Control
+                          value={editDoctorName}
+                          onChange={(e) => setEditDoctorName(e.target.value)}
+                          placeholder="Enter doctor's name"
+                          type="text"
+                          required
+                        />
+                      </Form.Group>
+                    </Col>
+                    <Col md="6">
+                      <Form.Group>
+                        <label>Location</label>
+                        <Form.Control
+                          value={editLocation}
+                          onChange={(e) => setEditLocation(e.target.value)}
+                          placeholder="Enter location"
+                          type="text"
+                          required
+                        />
+                      </Form.Group>
+                    </Col>
+                  </Row>
+                  <Row>
+                    <Col md="6">
+                      <Form.Group>
+                        <label>Visit Date and Time</label>
+                        <Datetime
+                          value={editVisitDate}
+                          onChange={(date) => setEditVisitDate(date)}
+                          inputProps={{
+                            placeholder: "Select date and time",
+                            required: true,
+                          }}
+                          timeFormat="HH:mm:ss"
+                          dateFormat="YYYY-MM-DD"
+                        />
+                      </Form.Group>
+                    </Col>
+                  </Row>
+                  <Row>
+                    <Col md="12">
+                      <Form.Group>
+                        <label>Notes</label>
+                        <Form.Control
+                          value={editNotes}
+                          onChange={(e) => setEditNotes(e.target.value)}
+                          placeholder="Enter any notes (optional)"
+                          as="textarea"
+                          rows="3"
+                        />
+                      </Form.Group>
+                    </Col>
+                  </Row>
+                  <Button variant="info" type="submit" disabled={loading}>
+                    {loading ? "Updating..." : "Update Visit"}
+                  </Button>{" "}
+                  <Button variant="secondary" onClick={() => setEditingVisit(null)}>
+                    Cancel
+                  </Button>
+                </Form>
+              </Card.Body>
+            </Card>
+          </Col>
+        </Row>
+      )}
       <Row>
         <Col md="12">
           <Card className="strpied-tabled-with-hover">
             <Card.Header>
               <Card.Title as="h4">Doctor Visits</Card.Title>
               <p className="card-category">
-                {user.role === "marketer"
-                  ? "Your logged visits"
-                  : "All visits (Admin View)"}
+                {user.role === "admin" ? "All visits (Admin View)" : "Your logged visits"}
               </p>
             </Card.Header>
             <Card.Body className="table-full-width table-responsive px-0">
@@ -261,12 +332,12 @@ function VisitList() {
                     </Col>
                     <Col md="2">
                       <Form.Group>
-                        <Form.Label>Marketer ID</Form.Label>
+                        <Form.Label>User ID</Form.Label>
                         <Form.Control
                           type="number"
                           placeholder="e.g., 2"
-                          value={marketerId}
-                          onChange={(e) => setMarketerId(e.target.value)}
+                          value={userIdFilter}
+                          onChange={(e) => setUserIdFilter(e.target.value)}
                         />
                       </Form.Group>
                     </Col>
@@ -300,7 +371,7 @@ function VisitList() {
                       <th className="border-0">Location</th>
                       <th className="border-0">Date</th>
                       <th className="border-0">Notes</th>
-                      {user.role === "admin" && <th className="border-0">Marketer</th>}
+                      {user.role === "admin" && <th className="border-0">Logged By</th>}
                       <th className="border-0">Actions</th>
                     </tr>
                   </thead>
@@ -312,7 +383,7 @@ function VisitList() {
                         <td>{visit.location}</td>
                         <td>{moment(visit.visit_date).format("YYYY-MM-DD HH:mm")}</td>
                         <td>{visit.notes}</td>
-                        {user.role === "admin" && <td>{visit.marketer_name}</td>}
+                        {user.role === "admin" && <td>{visit.user_name}</td>}
                         <td>
                           <Button
                             variant="warning"
