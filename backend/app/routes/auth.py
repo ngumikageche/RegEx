@@ -1,7 +1,8 @@
 # app/routes/auth.py
+from datetime import timedelta
 from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, get_jwt
-from datetime import timedelta
+
 from app.models.user import User
 from database import db
 from flask_bcrypt import Bcrypt
@@ -53,7 +54,7 @@ def register():
             current_app.logger.warning("Password too short in register request")
             return jsonify({"message": "Password must be at least 6 characters long"}), 400
 
-        if role not in ["doctor", "admin", "marketer"]:
+        if role not in ["admin", "user"]:
             current_app.logger.warning(f"Invalid role provided: {role}")
             return jsonify({"message": "Invalid role. Must be 'doctor', 'admin', or 'marketer'"}), 400
 

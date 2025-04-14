@@ -32,11 +32,12 @@ export const UserProvider = ({ children }) => {
         localStorage.setItem("user_role", userWithRole.role);
       } else {
         console.error("Failed to fetch user data:", userData.error || userData.msg);
+        // Handle 401 (Unauthorized) or 422 (Invalid Token) explicitly
         if (response.status === 401 || response.status === 422) {
           localStorage.removeItem("auth_token");
           localStorage.removeItem("user_role");
           setUser(null);
-          throw new Error("Unauthorized or invalid token");
+          throw new Error("Token expired or invalid");
         } else {
           setUser({
             id: null,
@@ -51,7 +52,7 @@ export const UserProvider = ({ children }) => {
       localStorage.removeItem("auth_token");
       localStorage.removeItem("user_role");
       setUser(null);
-      throw error;
+      throw error; // Re-throw the error for components to handle
     } finally {
       setLoading(false);
     }
@@ -62,6 +63,7 @@ export const UserProvider = ({ children }) => {
     if (token) {
       fetchUser(token).catch((err) => {
         console.error("Initial fetchUser failed:", err);
+        // No redirect here; let components handle it
       });
     } else {
       setUser(null);

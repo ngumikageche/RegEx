@@ -137,7 +137,7 @@ function FixedPlugin({
               <img alt="..." src={sideBarImage4}></img>
             </a>
           </li>
-          <li className="button-container">
+          {/* <li className="button-container">
             <div>
               <Button
                 block
@@ -184,7 +184,7 @@ function FixedPlugin({
           </li>
           <li className="header-title" id="sharrreTitle">
             Thank you for sharing!
-          </li>
+          </li> */}
           <li className="button-container mb-4">
             <Button
               className="btn-social btn-outline btn-round sharrre"

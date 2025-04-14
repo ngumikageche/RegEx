@@ -49,7 +49,7 @@ def create_app():
 
         response.headers["Access-Control-Allow-Credentials"] = "true"
         response.headers["Access-Control-Allow-Methods"] = "GET, POST, , PUT, DELETE, OPTIONS"
-        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With, X-User-Role"
         app.logger.debug(f"CORS Headers Set: {response.headers}")
         return response
     
@@ -71,12 +71,15 @@ def create_app():
     from app.routes.visits import visit_bp
     from app.routes.users import user_bp
     from app.routes.notification import notification_bp
+    from app.routes.reports import report_bp
 
     app.register_blueprint(user_bp, url_prefix="/user")
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(dashboard_bp, url_prefix="/dashboard")
     app.register_blueprint(visit_bp, url_prefix="/visit")
     app.register_blueprint(notification_bp, url_prefix="/notification")
+    app.register_blueprint(report_bp, url_prefix="/report")
+    app.logger.info("Blueprints registered successfully")
 
     # Create database tables
     # with app.app_context():

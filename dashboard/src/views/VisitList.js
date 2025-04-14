@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Card,
@@ -14,6 +14,9 @@ import {
 import { UserContext } from "../context/UserContext";
 import Datetime from "react-datetime";
 import moment from "moment";
+import { useReactToPrint } from "react-to-print";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 function VisitList() {
   const { user, fetchUser } = useContext(UserContext);
@@ -37,6 +40,89 @@ function VisitList() {
   const [editLocation, setEditLocation] = useState("");
   const [editVisitDate, setEditVisitDate] = useState(null);
   const [editNotes, setEditNotes] = useState("");
+
+  // Ref for printing and PDF
+  const componentRef = useRef();
+
+  // Print handler
+  const handlePrint = useReactToPrint({
+    content: () => componentRef.current,
+    documentTitle: `Visit_Report_${moment().format("YYYY-MM-DD")}`,
+    onBeforeGetContent: () => {
+      // Temporarily make the report visible for printing
+      componentRef.current.style.visibility = "visible";
+      componentRef.current.style.position = "absolute";
+      componentRef.current.style.left = "0";
+    },
+    onAfterPrint: () => {
+      // Restore hidden state after printing
+      componentRef.current.style.visibility = "hidden";
+      componentRef.current.style.position = "absolute";
+      componentRef.current.style.left = "-9999px";
+    },
+  });
+
+  // PDF generation handler
+  const handleDownloadPDF = async () => {
+    try {
+      setError("");
+      const element = componentRef.current;
+
+      // Temporarily make the report visible for rendering
+      element.style.visibility = "visible";
+      element.style.position = "absolute";
+      element.style.left = "0";
+
+      // Wait for fonts and rendering to complete
+      await document.fonts.ready;
+
+      const canvas = await html2canvas(element, {
+        scale: 2, // Higher resolution
+        useCORS: true, // Handle cross-origin images if any
+        logging: false, // Disable logging for cleaner console
+        backgroundColor: "#fff", // Ensure white background
+      });
+
+      // Restore hidden state
+      element.style.visibility = "hidden";
+      element.style.position = "absolute";
+      element.style.left = "-9999px";
+
+      // Verify canvas is valid
+      if (!canvas || canvas.width === 0 || canvas.height === 0) {
+        throw new Error("Failed to generate a valid canvas.");
+      }
+
+      const imgData = canvas.toDataURL("image/png");
+
+      // Verify image data
+      if (!imgData || imgData === "data:,") {
+        throw new Error("Generated image data is invalid.");
+      }
+
+      const pdf = new jsPDF("p", "mm", "a4");
+      const imgWidth = 210; // A4 width in mm
+      const pageHeight = 297; // A4 height in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      pdf.save(`Visit_Report_${moment().format("YYYY-MM-DD")}.pdf`);
+    } catch (err) {
+      console.error("PDF generation error:", err);
+      setError("Failed to generate PDF. Please try again.");
+    }
+  };
 
   // Fetch visits on mount
   useEffect(() => {
@@ -82,7 +168,6 @@ function VisitList() {
           url += `?${params.toString()}`;
         }
       }
-      // Non-admin users don't need a user_id parameter; the backend handles the filtering
 
       const response = await fetch(url, {
         method: "GET",
@@ -305,6 +390,14 @@ function VisitList() {
                   {error}
                 </Alert>
               )}
+              <div className="mb-3">
+                <Button variant="primary" onClick={handlePrint} className="me-2">
+                  Print
+                </Button>
+                <Button variant="success" onClick={handleDownloadPDF}>
+                  Download PDF
+                </Button>
+              </div>
               {user.role === "admin" && (
                 <Form onSubmit={handleFilterSubmit} className="mb-4">
                   <Row>
@@ -360,6 +453,111 @@ function VisitList() {
                   </Row>
                 </Form>
               )}
+              {/* Report Template */}
+              <div
+                style={{
+                  position: "absolute",
+                  left: "-9999px",
+                  visibility: "hidden",
+                  width: "210mm",
+                  backgroundColor: "#fff",
+                }}
+              >
+                <div
+                  ref={componentRef}
+                  style={{
+                    padding: "20mm",
+                    fontFamily: "'Helvetica', 'Arial', sans-serif",
+                    fontSize: "12px",
+                    width: "100%",
+                    boxSizing: "border-box",
+                    backgroundColor: "#fff",
+                  }}
+                >
+                  <div style={{ textAlign: "center", marginBottom: "15px" }}>
+                    <h1 style={{ fontSize: "20px", margin: "0", fontWeight: "bold" }}>
+                      Doctor Visit Report
+                    </h1>
+                    <p style={{ fontSize: "12px", color: "#555", margin: "5px 0" }}>
+                      Generated on {moment().format("MMMM D, YYYY")}
+                    </p>
+                    {user.role === "admin" && (
+                      <p style={{ fontSize: "10px", color: "#777", margin: "5px 0" }}>
+                        {startDate && `From: ${startDate} `}
+                        {endDate && `To: ${endDate} `}
+                        {userIdFilter && `User ID: ${userIdFilter} `}
+                        {doctorName && `Doctor: ${doctorName}`}
+                      </p>
+                    )}
+                  </div>
+                  <table
+                    style={{
+                      width: "100%",
+                      borderCollapse: "collapse",
+                      fontSize: "10px",
+                      marginBottom: "15px",
+                    }}
+                  >
+                    <thead>
+                      <tr style={{ backgroundColor: "#f5f5f5" }}>
+                        <th style={{ border: "1px solid #ccc", padding: "6px", fontWeight: "bold" }}>
+                          ID
+                        </th>
+                        <th style={{ border: "1px solid #ccc", padding: "6px", fontWeight: "bold" }}>
+                          Doctor
+                        </th>
+                        <th style={{ border: "1px solid #ccc", padding: "6px", fontWeight: "bold" }}>
+                          Location
+                        </th>
+                        <th style={{ border: "1px solid #ccc", padding: "6px", fontWeight: "bold" }}>
+                          Date
+                        </th>
+                        <th style={{ border: "1px solid #ccc", padding: "6px", fontWeight: "bold" }}>
+                          Notes
+                        </th>
+                        {user.role === "admin" && (
+                          <th style={{ border: "1px solid #ccc", padding: "6px", fontWeight: "bold" }}>
+                            Logged By
+                          </th>
+                        )}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {visits.map((visit) => (
+                        <tr key={visit.id}>
+                          <td style={{ border: "1px solid #ccc", padding: "6px" }}>
+                            {visit.id}
+                          </td>
+                          <td style={{ border: "1px solid #ccc", padding: "6px" }}>
+                            {visit.doctor_name}
+                          </td>
+                          <td style={{ border: "1px solid #ccc", padding: "6px" }}>
+                            {visit.location}
+                          </td>
+                          <td style={{ border: "1px solid #ccc", padding: "6px" }}>
+                            {moment(visit.visit_date).format("YYYY-MM-DD HH:mm")}
+                          </td>
+                          <td style={{ border: "1px solid #ccc", padding: "6px" }}>
+                            {visit.notes || "-"}
+                          </td>
+                          {user.role === "admin" && (
+                            <td style={{ border: "1px solid #ccc", padding: "6px" }}>
+                              {visit.user_name}
+                            </td>
+                          )}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <div style={{ textAlign: "center", fontSize: "10px", color: "#777" }}>
+                    <p style={{ margin: "5px 0" }}>Total Visits: {visits.length}</p>
+                    <p style={{ margin: "5px 0" }}>
+                      © {new Date().getFullYear()} Healthcare System
+                    </p>
+                  </div>
+                </div>
+              </div>
+              {/* Main Table */}
               {visits.length === 0 ? (
                 <p className="text-center">No visits found.</p>
               ) : (

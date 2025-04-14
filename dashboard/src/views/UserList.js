@@ -1,4 +1,3 @@
-// src/views/UserList.js
 import React, { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -9,6 +8,7 @@ import {
   Table,
   Alert,
   Spinner,
+  Button,
 } from "react-bootstrap";
 import { UserContext } from "../context/UserContext";
 
@@ -78,6 +78,34 @@ function UserList() {
     fetchData();
   }, [user, fetchUser, token, navigate]);
 
+  // Handle delete user
+  const handleDelete = async (userId) => {
+    if (!window.confirm("Are you sure you want to delete this user? This action cannot be undone.")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`http://127.0.0.1:5000/user/users/${userId}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        setUsers(users.filter((user) => user.id !== userId));
+        alert("User deleted successfully!");
+      } else {
+        setError(data.error || "Failed to delete user.");
+      }
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      setError("An error occurred while deleting the user.");
+    }
+  };
+
   if (loading) {
     return (
       <Container className="mt-5 text-center">
@@ -119,6 +147,7 @@ function UserList() {
                       <th className="border-0">Last Name</th>
                       <th className="border-0">Country</th>
                       <th className="border-0">City</th>
+                      <th className="border-0">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -132,7 +161,15 @@ function UserList() {
                         <td>{user.last_name || "N/A"}</td>
                         <td>{user.country || "N/A"}</td>
                         <td>{user.city || "N/A"}</td>
-                        
+                        <td>
+                          <Button
+                            variant="danger"
+                            size="sm"
+                            onClick={() => handleDelete(user.id)}
+                          >
+                            Delete
+                          </Button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
