@@ -153,23 +153,27 @@ def delete_user(user_id):
     if user.id == current_user_id:
         return jsonify({"error": "Admins cannot delete their own account."}), 400
 
-    # Store user details before deletion
-    username = user.username
-
-    db.session.delete(user)
-
-    # Notify all other admins
     admins = User.query.filter_by(role="admin").all()
-    for admin in admins:
-        if admin.id != current_user_id:
-            create_notification(
-                user_id=admin.id,
-                message=f"Admin {current_user.username} deleted user {username}."
-            )
+    if user.role == "admin" and len(admins) <= 1:
+        return jsonify({"error": "Cannot delete the last admin"}), 400
 
-    db.session.commit()
+    try:
+        username = user.username
+        db.session.delete(user)
 
-    return jsonify({"message": "User deleted successfully"}), 200
+        for admin in admins:
+            if admin.id != current_user_id:
+                create_notification(
+                    user_id=admin.id,
+                    message=f"Admin {current_user.username} deleted user {username}."
+                )
+
+        db.session.commit()
+        return jsonify({"message": "User deleted successfully"}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Failed to delete user: {str(e)}"}), 500
 # --------------------------
 # GET AND UPDATE CURRENT LOGGED-IN USER
 # --------------------------
