@@ -12,6 +12,7 @@ import {
   Form,
 } from "react-bootstrap";
 import { UserContext } from "../context/UserContext";
+import defaultAvatar from "../assets/img/default-avatar.png";
 import Datetime from "react-datetime";
 import moment from "moment";
 import { useReactToPrint } from "react-to-print";
@@ -20,6 +21,7 @@ import html2canvas from "html2canvas";
 
 function VisitList() {
   const { user, fetchUser } = useContext(UserContext);
+  // Use user?.avatar || defaultAvatar wherever avatar is displayed
   const navigate = useNavigate();
   const token = localStorage.getItem("auth_token");
 

@@ -284,7 +284,7 @@ function Dashboard() {
                 <Row>
                   <Col xs="5" className="d-flex justify-content-center">
                     <div className="icon-big text-center icon-warning">
-                      <i className="nc-icon nc-chart text-warning"></i>
+                      <i className="fa fa-chart-pie text-warning"></i>
                     </div>
                   </Col>
                   <Col xs="7">
@@ -310,7 +310,7 @@ function Dashboard() {
                 <Row>
                   <Col xs="5" className="d-flex justify-content-center">
                     <div className="icon-big text-center icon-warning">
-                      <i className="nc-icon nc-single-02 text-success"></i>
+                      <i className="fa fa-user-md text-success"></i>
                     </div>
                   </Col>
                   <Col xs="7">
@@ -336,7 +336,7 @@ function Dashboard() {
                 <Row>
                   <Col xs="5" className="d-flex justify-content-center">
                     <div className="icon-big text-center icon-warning">
-                      <i className="nc-icon nc-time-alarm text-danger"></i>
+                      <i className="fa fa-clock text-danger"></i>
                     </div>
                   </Col>
                   <Col xs="7">
@@ -362,7 +362,7 @@ function Dashboard() {
                 <Row>
                   <Col xs="5" className="d-flex justify-content-center">
                     <div className="icon-big text-center icon-warning">
-                      <i className="nc-icon nc-badge text-primary"></i>
+                      <i className="fa fa-user-tie text-primary"></i>
                     </div>
                   </Col>
                   <Col xs="7">
@@ -427,8 +427,8 @@ function Dashboard() {
               </Card.Body>
               <Card.Footer>
                 <div className="legend">
-                  <i className="fas fa-circle text-info"></i> Visits
-                  <i className="fas fa-circle text-danger"></i> Follow-Ups
+                  <i className="fa fa-circle text-info"></i> Visits
+                  <i className="fa fa-circle text-danger"></i> Follow-Ups
                 </div>
                 <hr />
                 <div className="stats">
@@ -461,9 +461,9 @@ function Dashboard() {
                   />
                 </div>
                 <div className="legend">
-                  <i className="fas fa-circle text-info"></i> In-Person
-                  <i className="fas fa-circle text-warning"></i> Virtual
-                  <i className="fas fa-circle text-danger"></i> Cancelled
+                  <i className="fa fa-circle text-info"></i> In-Person
+                  <i className="fa fa-circle text-warning"></i> Virtual
+                  <i className="fa fa-circle text-danger"></i> Cancelled
                 </div>
                 <hr />
                 <div className="stats">
@@ -716,9 +716,9 @@ function Dashboard() {
                 <Card.Body>
                   <Row>
                     <Col xs="5" className="d-flex justify-content-center">
-                      <div className="icon-big text-center icon-warning">
-                        <i className="nc-icon nc-calendar-60 text-primary"></i>
-                      </div>
+                    <div className="icon-big text-center icon-warning">
+                      <i className="fa fa-calendar-alt text-primary"></i>
+                    </div>
                     </Col>
                     <Col xs="7">
                       <div className="numbers">
@@ -742,9 +742,9 @@ function Dashboard() {
                 <Card.Body>
                   <Row>
                     <Col xs="5" className="d-flex justify-content-center">
-                      <div className="icon-big text-center icon-warning">
-                        <i className="nc-icon nc-time-alarm text-warning"></i>
-                      </div>
+                    <div className="icon-big text-center icon-warning">
+                      <i className="fa fa-clock text-warning"></i>
+                    </div>
                     </Col>
                     <Col xs="7">
                       <div className="numbers">
@@ -768,9 +768,9 @@ function Dashboard() {
                 <Card.Body>
                   <Row>
                     <Col xs="5" className="d-flex justify-content-center">
-                      <div className="icon-big text-center icon-warning">
-                        <i className="nc-icon nc-bell-55 text-danger"></i>
-                      </div>
+                    <div className="icon-big text-center icon-warning">
+                      <i className="fa fa-bell text-danger"></i>
+                    </div>
                     </Col>
                     <Col xs="7">
                       <div className="numbers">
@@ -794,9 +794,9 @@ function Dashboard() {
                 <Card.Body>
                   <Row>
                     <Col xs="5" className="d-flex justify-content-center">
-                      <div className="icon-big text-center icon-warning">
-                        <i className="nc-icon nc-single-02 text-success"></i>
-                      </div>
+                    <div className="icon-big text-center icon-warning">
+                      <i className="fa fa-user text-success"></i>
+                    </div>
                     </Col>
                     <Col xs="7">
                       <div className="numbers">
@@ -860,8 +860,8 @@ function Dashboard() {
                 </Card.Body>
                 <Card.Footer>
                   <div className="legend">
-                    <i className="fas fa-circle text-info"></i> Visits
-                    <i className="fas fa-circle text-warning"></i> Follow-Ups
+                    <i className="fa fa-circle text-info"></i> Visits
+                    <i className="fa fa-circle text-warning"></i> Follow-Ups
                   </div>
                   <hr />
                   <div className="stats">
@@ -894,9 +894,9 @@ function Dashboard() {
                     />
                   </div>
                   <div className="legend">
-                    <i className="fas fa-circle text-info"></i> In-Person
-                    <i className="fas fa-circle text-warning"></i> Virtual
-                    <i className="fas fa-circle text-danger"></i> Cancelled
+                    <i className="fa fa-circle text-info"></i> In-Person
+                    <i className="fa fa-circle text-warning"></i> Virtual
+                    <i className="fa fa-circle text-danger"></i> Cancelled
                   </div>
                   <hr />
                   <div className="stats">
@@ -996,7 +996,7 @@ function Dashboard() {
                           {notifications.slice(0, 5).map((notification, index) => (
                             <tr key={index}>
                               <td>
-                                <i className={`nc-icon nc-bell-55 ${notification.is_read ? "text-muted" : "text-danger"} mr-2`}></i>
+                                <i className={`fa fa-bell ${notification.is_read ? "text-muted" : "text-danger"} mr-2`}></i>
                               </td>
                               <td>{notification.message}</td>
                               <td className="td-actions text-right">

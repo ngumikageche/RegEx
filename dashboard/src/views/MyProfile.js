@@ -12,6 +12,7 @@ import {
   Spinner,
 } from "react-bootstrap";
 import { UserContext } from "../context/UserContext";
+import defaultAvatar from "../assets/img/default-avatar.png";
 
 function MyProfile() {
   const { user, fetchUser } = useContext(UserContext);
@@ -476,6 +477,8 @@ function MyProfile() {
                       <a href="#pablo" onClick={(e) => e.preventDefault()}>
                         <img
                           alt="..."
+                          src={user?.avatar || defaultAvatar}
+                          alt="User Avatar"
                           className="avatar border-gray"
                           src={require("../assets/img/faces/face-3.jpg")}
                         />
