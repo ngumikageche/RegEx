@@ -28,7 +28,6 @@ def create_app():
     # Define allowed origins
     allowed_origins = [
         "http://localhost:3000",
-        "http://127.0.0.1:3000","https://8174-102-215-77-42.ngrok-free.app"
     ]
 
     # Enable CORS with dynamic origin handling
@@ -72,6 +71,8 @@ def create_app():
     from app.routes.users import user_bp
     from app.routes.notification import notification_bp
     from app.routes.reports import report_bp
+    from app.routes.products import products_bp
+    from app.routes.categories import categories_bp
 
     app.register_blueprint(user_bp, url_prefix="/user")
     app.register_blueprint(auth_bp, url_prefix="/auth")
@@ -79,6 +80,8 @@ def create_app():
     app.register_blueprint(visit_bp, url_prefix="/visit")
     app.register_blueprint(notification_bp, url_prefix="/notification")
     app.register_blueprint(report_bp, url_prefix="/report")
+    app.register_blueprint(products_bp, url_prefix="/products")
+    app.register_blueprint(categories_bp, url_prefix="/categories")
     app.logger.info("Blueprints registered successfully")
 
     # Create database tables
