@@ -28,6 +28,7 @@ def create_app():
     # Define allowed origins
     allowed_origins = [
         "http://localhost:3000",
+        "https://api.nextek.co.ke",  # Add your production frontend domain here
     ]
 
     # Enable CORS with dynamic origin handling
