@@ -1,564 +1,463 @@
-import React, { useState, useEffect, useCallback, useContext, useMemo } from "react";
-import PropTypes from "prop-types";
-import { Button, Modal, Form, Spinner, Card, ListGroup, Badge, OverlayTrigger, Tooltip } from "react-bootstrap";
-import { UserContext } from "../context/UserContext";
+import React, { useState, useEffect, useCallback } from "react";
+import { Modal, Button, Form, Spinner } from "react-bootstrap";
+import { useForm } from "react-hook-form";
 import { NotificationContext } from "../context/NotificationContext";
-import { FaEdit, FaTrash, FaBoxOpen, FaTags, FaSearch } from "react-icons/fa";
-
-// Modal Component
-const CatalogueModal = ({ show, onClose, title, children }) => (
-  <Modal show={show} onHide={onClose} centered backdrop="static" keyboard={false}>
-    <Modal.Header closeButton>
-      <Modal.Title>{title}</Modal.Title>
-    </Modal.Header>
-    <Modal.Body>{children}</Modal.Body>
-  </Modal>
-);
-
-CatalogueModal.propTypes = {
-  show: PropTypes.bool.isRequired,
-  onClose: PropTypes.func.isRequired,
-  title: PropTypes.string.isRequired,
-  children: PropTypes.node.isRequired,
-};
-
+import { useContext } from "react";
 
 function Catalogue() {
-  const { user } = useContext(UserContext);
-  const { addNotification } = useContext(NotificationContext);
-  const isAdmin = user?.role === "admin";
-
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
-  const [categoryName, setCategoryName] = useState("");
-  const [categoryDesc, setCategoryDesc] = useState("");
-  const [productName, setProductName] = useState("");
-  const [productDesc, setProductDesc] = useState("");
-  const [productPrice, setProductPrice] = useState("");
-  const [productCategory, setProductCategory] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showProductModal, setShowProductModal] = useState(false);
-  const [editCategory, setEditCategory] = useState(null);
-  const [editProduct, setEditProduct] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const { addNotification } = useContext(NotificationContext);
 
-  const API_BASE = "http://127.0.0.1:5000";
+  const API_BASE = "https://api.regisamtech.co.ke";
   const getToken = () => localStorage.getItem("auth_token");
 
- // Fetch categories
- const fetchCategories = useCallback(async () => {
- setIsLoading(true);
- try {
- const res = await fetch(`${API_BASE}/categories/`, {
- headers: { Authorization: `Bearer ${getToken()}` },
- });
- if (!res.ok) throw new Error("Failed to fetch categories");
- const data = await res.json();
- setCategories(data.categories || []);
- } catch (err) {
- addNotification({ message: err.message || "Error fetching categories", type: "error" });
- } finally {
- setIsLoading(false);
- }
- }, [addNotification]);
+  const fetchCategories = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/categories/`, {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setCategories(data.categories || []);
+      } else {
+        addNotification({ message: "Failed to fetch categories", type: "error" });
+      }
+    } catch (err) {
+      addNotification({ message: "Network error", type: "error" });
+    } finally {
+      setLoading(false);
+    }
+  }, [addNotification]);
 
- // Fetch products
- const fetchProducts = useCallback(async () => {
- setIsLoading(true);
- try {
- const res = await fetch(`${API_BASE}/products/`, {
- headers: { Authorization: `Bearer ${getToken()}` },
- });
- if (!res.ok) throw new Error("Failed to fetch products");
- const data = await res.json();
- setProducts(data.products || []);
- } catch (err) {
- addNotification({ message: err.message || "Error fetching products", type: "error" });
- } finally {
- setIsLoading(false);
- }
- }, [addNotification]);
+  const fetchProducts = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/products/`, {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setProducts(data.products || []);
+      } else {
+        addNotification({ message: "Failed to fetch products", type: "error" });
+      }
+    } catch (err) {
+      addNotification({ message: "Network error", type: "error" });
+    } finally {
+      setLoading(false);
+    }
+  }, [addNotification]);
 
- // Initial data fetch
- useEffect(() => {
- fetchCategories();
- fetchProducts();
- }, [fetchCategories, fetchProducts]);
+  useEffect(() => {
+    fetchCategories();
+    fetchProducts();
+  }, [fetchCategories, fetchProducts]);
 
- // Add or update category
- const handleSaveCategory = async (e) => {
- e.preventDefault();
- if (!categoryName.trim()) {
- addNotification({ message: "Category name is required", type: "error" });
- return;
- }
- setIsLoading(true);
- const url = editCategory
- ? `${API_BASE}/categories/${editCategory.id}`
- : `${API_BASE}/categories/`;
- const method = editCategory ? "PUT" : "POST";
- try {
- const res = await fetch(url, {
- method,
- headers: {
- "Content-Type": "application/json",
- Authorization: `Bearer ${getToken()}`,
- },
- body: JSON.stringify({ name: categoryName, description: categoryDesc }),
- });
- if (!res.ok) throw new Error(`Failed to ${editCategory ? "update" : "add"} category`);
- addNotification({
- message: `Category ${editCategory ? "updated" : "added"} successfully`,
- type: "success",
- });
- setCategoryName("");
- setCategoryDesc("");
- setEditCategory(null);
- setShowCategoryModal(false);
- fetchCategories();
- } catch (err) {
- addNotification({
- message: err.message || `Error ${editCategory ? "updating" : "adding"} category`,
- type: "error",
- });
- } finally {
- setIsLoading(false);
- }
- };
+  const handleAddCategory = async (data) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/categories/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify({ name: data.categoryName, description: data.categoryDesc }),
+      });
+      if (res.ok) {
+        setShowCategoryModal(false);
+        fetchCategories();
+        addNotification({ message: "Category added successfully", type: "success" });
+      } else {
+        addNotification({ message: "Failed to add category", type: "error" });
+      }
+    } catch (err) {
+      addNotification({ message: "Network error", type: "error" });
+    } finally {
+      setLoading(false);
+    }
+  };
 
- // Delete category
- const handleDeleteCategory = async (id) => {
- if (!window.confirm("Are you sure you want to delete this category?")) return;
- setIsLoading(true);
- try {
- const res = await fetch(`${API_BASE}/categories/${id}`, {
- method: "DELETE",
- headers: { Authorization: `Bearer ${getToken()}` },
- });
- if (!res.ok) throw new Error("Failed to delete category");
- addNotification({ message: "Category deleted successfully", type: "success" });
- fetchCategories();
- } catch (err) {
- addNotification({ message: err.message || "Error deleting category", type: "error" });
- } finally {
- setIsLoading(false);
- }
- };
+  const handleDeleteCategory = async (id) => {
+    if (!window.confirm("Delete this category?")) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/categories/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      if (res.ok) {
+        fetchCategories();
+        addNotification({ message: "Category deleted successfully", type: "success" });
+      } else {
+        addNotification({ message: "Failed to delete category", type: "error" });
+      }
+    } catch (err) {
+      addNotification({ message: "Network error", type: "error" });
+    } finally {
+      setLoading(false);
+    }
+  };
 
- // Add or update product
- const handleSaveProduct = async (e) => {
- e.preventDefault();
- if (!productName.trim() || !productPrice || !productCategory) {
- addNotification({ message: "Please fill in all required fields", type: "error" });
- return;
- }
- const price = parseFloat(productPrice);
- if (isNaN(price) || price < 0) {
- addNotification({ message: "Please enter a valid price", type: "error" });
- return;
- }
- const cat = categories.find((c) => c.name === productCategory);
- if (!cat) {
- addNotification({ message: "Selected category is invalid", type: "error" });
- return;
- }
- setIsLoading(true);
- const url = editProduct ? `${API_BASE}/products/${editProduct.id}` : `${API_BASE}/products/`;
- const method = editProduct ? "PUT" : "POST";
- try {
- const res = await fetch(url, {
- method,
- headers: {
- "Content-Type": "application/json",
- Authorization: `Bearer ${getToken()}`,
- },
- body: JSON.stringify({
- name: productName,
- description: productDesc,
- price: price,
- category_id: cat.id,
- }),
- });
- if (!res.ok) throw new Error(`Failed to ${editProduct ? "update" : "add"} product`);
- addNotification({
- message: `Product ${editProduct ? "updated" : "added"} successfully`,
- type: "success",
- });
- setProductName("");
- setProductDesc("");
- setProductPrice("");
- setProductCategory("");
- setEditProduct(null);
- setShowProductModal(false);
- fetchProducts();
- } catch (err) {
- addNotification({
- message: err.message || `Error ${editProduct ? "updating" : "adding"} product`,
- type: "error",
- });
- } finally {
- setIsLoading(false);
- }
- };
+  const handleAddProduct = async (data) => {
+    const cat = categories.find((c) => c.name === data.productCategory);
+    if (!cat) {
+      addNotification({ message: "Invalid category selected", type: "error" });
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/products/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify({
+          name: data.productName,
+          description: data.productDesc,
+          price: data.productPrice,
+          category_id: cat.id,
+        }),
+      });
+      if (res.ok) {
+        setShowProductModal(false);
+        fetchProducts();
+        addNotification({ message: "Product added successfully", type: "success" });
+      } else {
+        addNotification({ message: "Failed to add product", type: "error" });
+      }
+    } catch (err) {
+      addNotification({ message: "Network error", type: "error" });
+    } finally {
+      setLoading(false);
+    }
+  };
 
- // Delete product
- const handleDeleteProduct = async (id) => {
- if (!window.confirm("Are you sure you want to delete this product?")) return;
- setIsLoading(true);
- try {
- const res = await fetch(`${API_BASE}/products/${id}`, {
- method: "DELETE",
- headers: { Authorization: `Bearer ${getToken()}` },
- });
- if (!res.ok) throw new Error("Failed to delete product");
- addNotification({ message: "Product deleted successfully", type: "success" });
- fetchProducts();
- } catch (err) {
- addNotification({ message: err.message || "Error deleting product", type: "error" });
- } finally {
- setIsLoading(false);
- }
- };
+  const handleDeleteProduct = async (id) => {
+    if (!window.confirm("Delete this item?")) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/products/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      if (res.ok) {
+        fetchProducts();
+        addNotification({ message: "Product deleted successfully", type: "success" });
+      } else {
+        addNotification({ message: "Failed to delete product", type: "error" });
+      }
+    } catch (err) {
+      addNotification({ message: "Network error", type: "error" });
+    } finally {
+      setLoading(false);
+    }
+  };
 
- // Edit category handler
- const handleEditCategory = (category) => {
- setEditCategory(category);
- setCategoryName(category.name);
- setCategoryDesc(category.description || "");
- setShowCategoryModal(true);
- };
-
- // Edit product handler
- const handleEditProduct = (product) => {
- setEditProduct(product);
- setProductName(product.name);
- setProductDesc(product.description || "");
- setProductPrice(product.price.toString());
- const category = categories.find((c) => c.id === product.category_id);
- setProductCategory(category ? category.name : "");
- setShowProductModal(true);
- };
-
-
-  // Memoized filtered products
-  const filteredProducts = useMemo(
-    () =>
-      products.filter((prod) =>
-        prod.name.toLowerCase().includes(searchTerm.toLowerCase())
-      ),
-    [products, searchTerm]
-  );
-
+  const categoryForm = useForm();
+  const productForm = useForm();
 
   return (
-    <div className="container-fluid py-4">
-      <h1 className="text-center mb-4 fw-bold display-5">
-        <FaBoxOpen className="me-2 text-primary" />Product Catalogue
-      </h1>
-
-      {/* Search Bar */}
-      <div className="mb-4 d-flex justify-content-center align-items-center gap-2">
-        <Form.Control
-          type="text"
-          placeholder="Search products..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-50"
-          aria-label="Search products"
-        />
-        <FaSearch className="text-muted" />
-      </div>
-
-      {/* Loading Indicator */}
-      {isLoading && (
-        <div className="text-center mb-4">
-          <Spinner animation="border" role="status">
-            <span className="visually-hidden">Loading...</span>
-          </Spinner>
-        </div>
-      )}
-
-      <div className="row g-4">
-        {/* Category Section */}
-        <div className="col-md-6">
-          <Card className="shadow-sm h-100">
-            <Card.Header className="bg-light d-flex justify-content-between align-items-center">
-              <div className="d-flex align-items-center gap-2">
-                <FaTags className="text-secondary" />
-                <Card.Title as="h5" className="mb-0">Categories</Card.Title>
-                <Badge bg="info" pill>{categories.length}</Badge>
+    <div className="content">
+      <div className="container-fluid p-4">
+        <h1 className="text-center mb-5 text-primary">Catalogue</h1>
+        {loading && (
+          <div className="d-flex justify-content-center mb-4">
+            <Spinner animation="border" role="status">
+              <span className="visually-hidden">Loading...</span>
+            </Spinner>
+          </div>
+        )}
+        <div className="row">
+          <div className="col-lg-6 col-md-12 mb-4">
+            <div className="card animate__animated animate__fadeIn">
+              <div className="card-header">
+                <div className="d-flex justify-content-between align-items-center">
+                  <h3 className="card-title">Categories</h3>
+                  <Button
+                    variant="primary"
+                    onClick={() => setShowCategoryModal(true)}
+                    className="btn-fill"
+                  >
+                    <i className="fas fa-plus me-2"></i> Add Category
+                  </Button>
+                </div>
               </div>
-              {isAdmin && (
+              <div className="card-body">
+                {categories.length === 0 ? (
+                  <p className="text-muted text-center">No categories yet.</p>
+                ) : (
+                  <ul className="list-group list-group-flush">
+                    {categories.map((cat) => (
+                      <li
+                        key={cat.id}
+                        className="list-group-item animate__animated animate__fadeInLeft"
+                      >
+                        <div className="d-flex justify-content-between align-items-start">
+                          <div>
+                            <h5 className="mb-1">{cat.name}</h5>
+                            {cat.description && (
+                              <p className="text-muted mb-0">{cat.description}</p>
+                            )}
+                          </div>
+                          <Button
+                            variant="link"
+                            onClick={() => handleDeleteCategory(cat.id)}
+                            className="text-danger"
+                          >
+                            <i className="fas fa-trash"></i>
+                          </Button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="col-lg-6 col-md-12 mb-4">
+            <div className="card animate__animated animate__fadeIn">
+              <div className="card-header">
+                <div className="d-flex justify-content-between align-items-center">
+                  <h3 className="card-title">Items</h3>
+                  <Button
+                    variant="success"
+                    onClick={() => setShowProductModal(true)}
+                    className="btn-fill"
+                  >
+                    <i className="fas fa-plus me-2"></i> Add Item
+                  </Button>
+                </div>
+              </div>
+              <div className="card-body">
+                {products.length === 0 ? (
+                  <p className="text-muted text-center">No items yet.</p>
+                ) : (
+                  <ul className="list-group list-group-flush">
+                    {products.map((prod) => (
+                      <li
+                        key={prod.id}
+                        className="list-group-item animate__animated animate__fadeInRight"
+                      >
+                        <div className="d-flex justify-content-between align-items-start">
+                          <div>
+                            <h5 className="mb-1">{prod.name}</h5>
+                            <p className="text-muted mb-0">
+                              {categories.find((c) => c.id === prod.category_id)?.name ||
+                                "Unknown"}{" "}
+                              &bull; ${prod.price}
+                            </p>
+                            {prod.description && (
+                              <p className="text-muted mb-0">{prod.description}</p>
+                            )}
+                          </div>
+                          <Button
+                            variant="link"
+                            onClick={() => handleDeleteProduct(prod.id)}
+                            className="text-danger"
+                          >
+                            <i className="fas fa-trash"></i>
+                          </Button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Category Modal */}
+        <Modal
+          show={showCategoryModal}
+          onHide={() => {
+            setShowCategoryModal(false);
+            categoryForm.reset();
+          }}
+          centered
+          animation
+          className="animate__animated animate__slideInUp"
+        >
+          <Modal.Header>
+            <Modal.Title>Add Category</Modal.Title>
+            <Button
+              variant="link"
+              onClick={() => {
+                setShowCategoryModal(false);
+                categoryForm.reset();
+              }}
+              className="text-muted"
+            >
+              <i className="fas fa-times"></i>
+            </Button>
+          </Modal.Header>
+          <Modal.Body>
+            <Form onSubmit={categoryForm.handleSubmit(handleAddCategory)}>
+              <Form.Group className="mb-3" controlId="categoryName">
+                <Form.Label>Category Name</Form.Label>
+                <Form.Control
+                  {...categoryForm.register("categoryName", {
+                    required: "Category name is required",
+                  })}
+                  isInvalid={!!categoryForm.formState.errors.categoryName}
+                  placeholder="Enter category name"
+                  autoFocus
+                />
+                <Form.Control.Feedback type="invalid">
+                  {categoryForm.formState.errors.categoryName?.message}
+                </Form.Control.Feedback>
+              </Form.Group>
+              <Form.Group className="mb-3" controlId="categoryDesc">
+                <Form.Label>Description</Form.Label>
+                <Form.Control
+                  as="textarea"
+                  rows={3}
+                  {...categoryForm.register("categoryDesc")}
+                  placeholder="Enter description"
+                />
+              </Form.Group>
+              <div className="d-flex gap-2">
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setShowCategoryModal(false);
+                    categoryForm.reset();
+                  }}
+                  className="btn-fill flex-1"
+                  disabled={loading}
+                >
+                  Cancel
+                </Button>
                 <Button
                   variant="primary"
-                  size="sm"
-                  onClick={() => {
-                    setEditCategory(null);
-                    setCategoryName("");
-                    setCategoryDesc("");
-                    setShowCategoryModal(true);
-                  }}
-                  disabled={isLoading}
+                  type="submit"
+                  className="btn-fill flex-1"
+                  disabled={loading}
                 >
-                  + Add
+                  {loading ? <Spinner animation="border" size="sm" /> : "Add Category"}
                 </Button>
-              )}
-            </Card.Header>
-            <Card.Body>
-              <ListGroup variant="flush">
-                {categories.length === 0 && !isLoading && (
-                  <ListGroup.Item className="text-muted text-center py-5">
-                    <FaTags className="mb-2 text-secondary" style={{ fontSize: 32 }} />
-                    <div>No categories available</div>
-                  </ListGroup.Item>
-                )}
-                {categories.map((cat) => (
-                  <ListGroup.Item key={cat.id} className="d-flex justify-content-between align-items-center">
-                    <div>
-                      <span className="fw-semibold">{cat.name}</span>
-                      {cat.description && (
-                        <div className="text-muted small">{cat.description}</div>
-                      )}
-                    </div>
-                    {isAdmin && (
-                      <div className="d-flex gap-1">
-                        <OverlayTrigger placement="top" overlay={<Tooltip>Edit</Tooltip>}>
-                          <Button
-                            variant="outline-primary"
-                            size="sm"
-                            onClick={() => handleEditCategory(cat)}
-                            disabled={isLoading}
-                            aria-label={`Edit ${cat.name} category`}
-                          >
-                            <FaEdit />
-                          </Button>
-                        </OverlayTrigger>
-                        <OverlayTrigger placement="top" overlay={<Tooltip>Delete</Tooltip>}>
-                          <Button
-                            variant="outline-danger"
-                            size="sm"
-                            onClick={() => handleDeleteCategory(cat.id)}
-                            disabled={isLoading}
-                            aria-label={`Delete ${cat.name} category`}
-                          >
-                            <FaTrash />
-                          </Button>
-                        </OverlayTrigger>
-                      </div>
-                    )}
-                  </ListGroup.Item>
-                ))}
-              </ListGroup>
-            </Card.Body>
-          </Card>
-        </div>
-
-        {/* Product Section */}
-        <div className="col-md-6">
-          <Card className="shadow-sm h-100">
-            <Card.Header className="bg-light d-flex justify-content-between align-items-center">
-              <div className="d-flex align-items-center gap-2">
-                <FaBoxOpen className="text-success" />
-                <Card.Title as="h5" className="mb-0">Products</Card.Title>
-                <Badge bg="success" pill>{products.length}</Badge>
               </div>
-              {isAdmin && (
+            </Form>
+          </Modal.Body>
+        </Modal>
+
+        {/* Product Modal */}
+        <Modal
+          show={showProductModal}
+          onHide={() => {
+            setShowProductModal(false);
+            productForm.reset();
+          }}
+          centered
+          animation
+          className="animate__animated animate__slideInUp"
+        >
+          <Modal.Header>
+            <Modal.Title>Add Item</Modal.Title>
+            <Button
+              variant="link"
+              onClick={() => {
+                setShowProductModal(false);
+                productForm.reset();
+              }}
+              className="text-muted"
+            >
+              <i className="fas fa-times"></i>
+            </Button>
+          </Modal.Header>
+          <Modal.Body>
+            <Form onSubmit={productForm.handleSubmit(handleAddProduct)}>
+              <Form.Group className="mb-3" controlId="productName">
+                <Form.Label>Item Name</Form.Label>
+                <Form.Control
+                  {...productForm.register("productName", {
+                    required: "Item name is required",
+                  })}
+                  isInvalid={!!productForm.formState.errors.productName}
+                  placeholder="Enter item name"
+                  autoFocus
+                />
+                <Form.Control.Feedback type="invalid">
+                  {productForm.formState.errors.productName?.message}
+                </Form.Control.Feedback>
+              </Form.Group>
+              <Form.Group className="mb-3" controlId="productDesc">
+                <Form.Label>Description</Form.Label>
+                <Form.Control
+                  as="textarea"
+                  rows={3}
+                  {...productForm.register("productDesc")}
+                  placeholder="Enter description"
+                />
+              </Form.Group>
+              <Form.Group className="mb-3" controlId="productPrice">
+                <Form.Label>Price</Form.Label>
+                <Form.Control
+                  type="number"
+                  {...productForm.register("productPrice", {
+                    required: "Price is required",
+                    min: { value: 0, message: "Price cannot be negative" },
+                  })}
+                  isInvalid={!!productForm.formState.errors.productPrice}
+                  placeholder="Enter price"
+                  step="0.01"
+                />
+                <Form.Control.Feedback type="invalid">
+                  {productForm.formState.errors.productPrice?.message}
+                </Form.Control.Feedback>
+              </Form.Group>
+              <Form.Group className="mb-3" controlId="productCategory">
+                <Form.Label>Category</Form.Label>
+                <Form.Control
+                  as="select"
+                  {...productForm.register("productCategory", {
+                    required: "Category is required",
+                  })}
+                  isInvalid={!!productForm.formState.errors.productCategory}
+                >
+                  <option value="">Select Category</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.name}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </Form.Control>
+                <Form.Control.Feedback type="invalid">
+                  {productForm.formState.errors.productCategory?.message}
+                </Form.Control.Feedback>
+              </Form.Group>
+              <div className="d-flex gap-2">
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setShowProductModal(false);
+                    productForm.reset();
+                  }}
+                  className="btn-fill flex-1"
+                  disabled={loading}
+                >
+                  Cancel
+                </Button>
                 <Button
                   variant="success"
-                  size="sm"
-                  onClick={() => {
-                    setEditProduct(null);
-                    setProductName("");
-                    setProductDesc("");
-                    setProductPrice("");
-                    setProductCategory("");
-                    setShowProductModal(true);
-                  }}
-                  disabled={isLoading}
+                  type="submit"
+                  className="btn-fill flex-1"
+                  disabled={loading}
                 >
-                  + Add
+                  {loading ? <Spinner animation="border" size="sm" /> : "Add Item"}
                 </Button>
-              )}
-            </Card.Header>
-            <Card.Body>
-              <ListGroup variant="flush">
-                {filteredProducts.length === 0 && !isLoading && (
-                  <ListGroup.Item className="text-muted text-center py-5">
-                    <FaBoxOpen className="mb-2 text-success" style={{ fontSize: 32 }} />
-                    <div>No products available</div>
-                  </ListGroup.Item>
-                )}
-                {filteredProducts.map((prod) => (
-                  <ListGroup.Item key={prod.id} className="d-flex justify-content-between align-items-center">
-                    <div>
-                      <span className="fw-semibold">{prod.name}</span>
-                      <div className="text-muted small">
-                        {categories.find((c) => c.id === prod.category_id)?.name || "Unknown"} • $
-                        {parseFloat(prod.price).toFixed(2)}
-                      </div>
-                      {prod.description && (
-                        <div className="text-muted small">{prod.description}</div>
-                      )}
-                    </div>
-                    {isAdmin && (
-                      <div className="d-flex gap-1">
-                        <OverlayTrigger placement="top" overlay={<Tooltip>Edit</Tooltip>}>
-                          <Button
-                            variant="outline-primary"
-                            size="sm"
-                            onClick={() => handleEditProduct(prod)}
-                            disabled={isLoading}
-                            aria-label={`Edit ${prod.name} product`}
-                          >
-                            <FaEdit />
-                          </Button>
-                        </OverlayTrigger>
-                        <OverlayTrigger placement="top" overlay={<Tooltip>Delete</Tooltip>}>
-                          <Button
-                            variant="outline-danger"
-                            size="sm"
-                            onClick={() => handleDeleteProduct(prod.id)}
-                            disabled={isLoading}
-                            aria-label={`Delete ${prod.name} product`}
-                          >
-                            <FaTrash />
-                          </Button>
-                        </OverlayTrigger>
-                      </div>
-                    )}
-                  </ListGroup.Item>
-                ))}
-              </ListGroup>
-            </Card.Body>
-          </Card>
-        </div>
+              </div>
+            </Form>
+          </Modal.Body>
+        </Modal>
       </div>
-
-      {/* Category Modal */}
-      <CatalogueModal
-        show={showCategoryModal}
-        onClose={() => {
-          setShowCategoryModal(false);
-          setEditCategory(null);
-          setCategoryName("");
-          setCategoryDesc("");
-        }}
-        title={editCategory ? "Edit Category" : "Add Category"}
-      >
-        <Form onSubmit={handleSaveCategory} autoComplete="off">
-          <Form.Group className="mb-3" controlId="categoryName">
-            <Form.Label>Category Name <span className="text-danger">*</span></Form.Label>
-            <Form.Control
-              type="text"
-              placeholder="Enter category name"
-              value={categoryName}
-              onChange={(e) => setCategoryName(e.target.value)}
-              required
-              autoFocus
-            />
-          </Form.Group>
-          <Form.Group className="mb-3" controlId="categoryDesc">
-            <Form.Label>Description (Optional)</Form.Label>
-            <Form.Control
-              as="textarea"
-              rows={3}
-              placeholder="Enter description"
-              value={categoryDesc}
-              onChange={(e) => setCategoryDesc(e.target.value)}
-            />
-          </Form.Group>
-          <div className="d-flex justify-content-end gap-2">
-            <Button
-              variant="secondary"
-              onClick={() => setShowCategoryModal(false)}
-              disabled={isLoading}
-            >
-              Cancel
-            </Button>
-            <Button variant="primary" type="submit" disabled={isLoading}>
-              {isLoading ? "Saving..." : editCategory ? "Update Category" : "Add Category"}
-            </Button>
-          </div>
-        </Form>
-      </CatalogueModal>
-
-      {/* Product Modal */}
-      <CatalogueModal
-        show={showProductModal}
-        onClose={() => {
-          setShowProductModal(false);
-          setEditProduct(null);
-          setProductName("");
-          setProductDesc("");
-          setProductPrice("");
-          setProductCategory("");
-        }}
-        title={editProduct ? "Edit Product" : "Add Product"}
-      >
-        <Form onSubmit={handleSaveProduct} autoComplete="off">
-          <Form.Group className="mb-3" controlId="productName">
-            <Form.Label>Product Name <span className="text-danger">*</span></Form.Label>
-            <Form.Control
-              type="text"
-              placeholder="Enter product name"
-              value={productName}
-              onChange={(e) => setProductName(e.target.value)}
-              required
-              autoFocus
-            />
-          </Form.Group>
-          <Form.Group className="mb-3" controlId="productDesc">
-            <Form.Label>Description (Optional)</Form.Label>
-            <Form.Control
-              as="textarea"
-              rows={3}
-              placeholder="Enter description"
-              value={productDesc}
-              onChange={(e) => setProductDesc(e.target.value)}
-            />
-          </Form.Group>
-          <Form.Group className="mb-3" controlId="productPrice">
-            <Form.Label>Price <span className="text-danger">*</span></Form.Label>
-            <Form.Control
-              type="number"
-              placeholder="Enter price"
-              value={productPrice}
-              onChange={(e) => setProductPrice(e.target.value)}
-              required
-              min="0"
-              step="0.01"
-            />
-          </Form.Group>
-          <Form.Group className="mb-3" controlId="productCategory">
-            <Form.Label>Category <span className="text-danger">*</span></Form.Label>
-            <Form.Select
-              value={productCategory}
-              onChange={(e) => setProductCategory(e.target.value)}
-              required
-            >
-              <option value="">Select Category</option>
-              {categories.map((cat) => (
-                <option key={cat.id} value={cat.name}>
-                  {cat.name}
-                </option>
-              ))}
-            </Form.Select>
-          </Form.Group>
-          <div className="d-flex justify-content-end gap-2">
-            <Button
-              variant="secondary"
-              onClick={() => setShowProductModal(false)}
-              disabled={isLoading}
-            >
-              Cancel
-            </Button>
-            <Button variant="success" type="submit" disabled={isLoading}>
-              {isLoading ? "Saving..." : editProduct ? "Update Product" : "Add Product"}
-            </Button>
-          </div>
-        </Form>
-      </CatalogueModal>
     </div>
   );
 }

@@ -74,10 +74,10 @@ const root = ReactDOM.createRoot(document.getElementById("root"));
 
 root.render(
   <BrowserRouter>
-    <UserProvider>
-      <NotificationProvider>
+    <NotificationProvider>
+      <UserProvider>
         <App />
-      </NotificationProvider>
-    </UserProvider>
+      </UserProvider>
+    </NotificationProvider>
   </BrowserRouter>
 );

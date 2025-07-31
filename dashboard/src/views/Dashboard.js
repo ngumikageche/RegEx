@@ -64,7 +64,7 @@ function Dashboard() {
       setLoadingVisits(true);
       setError("");
       try {
-        const response = await fetch("http://127.0.0.1:5000/visit/", {
+        const response = await fetch("https://api.regisamtech.co.ke/visit/", {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -103,7 +103,7 @@ function Dashboard() {
       setLoadingAllVisits(true);
       setError("");
       try {
-        const response = await fetch("http://127.0.0.1:5000/report/all-visits", {
+        const response = await fetch("https://api.regisamtech.co.ke/report/all-visits", {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -142,7 +142,7 @@ function Dashboard() {
     const fetchNotifications = async () => {
       setLoadingNotifications(true);
       try {
-        const response = await fetch("http://127.0.0.1:5000/notification/", {
+        const response = await fetch("https://api.regisamtech.co.ke/notification/", {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -180,7 +180,7 @@ function Dashboard() {
     const fetchUsers = async () => {
       setLoadingUsers(true);
       try {
-        const response = await fetch("http://127.0.0.1:5000/user/", {
+        const response = await fetch("https://api.regisamtech.co.ke/user/", {
           method: "GET",
           headers: {
             "Content-Type": "application/json",

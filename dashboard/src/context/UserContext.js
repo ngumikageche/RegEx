@@ -1,15 +1,17 @@
-import React, { createContext, useState, useEffect } from "react";
+import React, { createContext, useState, useEffect, useContext } from "react";
+import { NotificationContext } from "../context/NotificationContext";
 
 export const UserContext = createContext();
 
 export const UserProvider = ({ children }) => {
+  const { showNotification, unreadCount, fetchUnreadNotifications } = useContext(NotificationContext);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const fetchUser = async (token) => {
     try {
       console.log("Fetching user with token:", token);
-      const response = await fetch("http://127.0.0.1:5000/user/me", {
+      const response = await fetch("https://api.regisamtech.co.ke/user/me", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -22,20 +24,17 @@ export const UserProvider = ({ children }) => {
       console.log("Fetch user response data:", userData);
 
       if (response.ok) {
-        // Ensure the user object has a role; default to "user" if missing
         const userWithRole = {
           ...userData,
-          role: userData.role || "user", // Default to "user" if role is missing
+          role: userData.role || "user",
         };
         setUser(userWithRole);
         console.log("User data set:", userWithRole);
-        localStorage.setItem("user_role", userWithRole.role);
       } else {
         console.error("Failed to fetch user data:", userData.error || userData.msg);
-        // Handle 401 (Unauthorized) or 422 (Invalid Token) explicitly
+        showNotification(userData.error || "Failed to fetch user data.", "error");
         if (response.status === 401 || response.status === 422) {
           localStorage.removeItem("auth_token");
-          localStorage.removeItem("user_role");
           setUser(null);
           throw new Error("Token expired or invalid");
         } else {
@@ -49,10 +48,10 @@ export const UserProvider = ({ children }) => {
       }
     } catch (error) {
       console.error("Error fetching user:", error);
+      showNotification("An error occurred while fetching user data.", "error");
       localStorage.removeItem("auth_token");
-      localStorage.removeItem("user_role");
       setUser(null);
-      throw error; // Re-throw the error for components to handle
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -63,7 +62,6 @@ export const UserProvider = ({ children }) => {
     if (token) {
       fetchUser(token).catch((err) => {
         console.error("Initial fetchUser failed:", err);
-        // No redirect here; let components handle it
       });
     } else {
       setUser(null);
@@ -72,7 +70,7 @@ export const UserProvider = ({ children }) => {
   }, []);
 
   return (
-    <UserContext.Provider value={{ user, setUser, fetchUser, loading }}>
+    <UserContext.Provider value={{ user, setUser, fetchUser, loading, unreadCount, fetchUnreadNotifications }}>
       {children}
     </UserContext.Provider>
   );

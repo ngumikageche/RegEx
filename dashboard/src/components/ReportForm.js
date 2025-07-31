@@ -32,8 +32,8 @@ const ReportForm = ({ show, onHide, token, user, report, visits, onSave }) => {
     };
 
     const url = report
-      ? `http://127.0.0.1:5000/report/${report.id}`
-      : "http://127.0.0.1:5000/report/";
+      ? `https://api.regisamtech.co.ke/report/${report.id}`
+      : "https://api.regisamtech.co.ke/report/";
     const method = report ? "PUT" : "POST";
 
     try {

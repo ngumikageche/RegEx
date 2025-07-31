@@ -1,24 +1,23 @@
-// src/components/Register.js
 import React, { useState, useContext, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button, Card, Form, Container, Row, Col, Alert, Spinner } from "react-bootstrap";
-import { UserContext } from "context/UserContext";
+import { Button, Card, Form, Container, Row, Col, Spinner } from "react-bootstrap";
+import { UserContext } from "../context/UserContext";
+import { NotificationContext } from "../context/NotificationContext";
 
 const Register = () => {
   const { user, fetchUser, setUser } = useContext(UserContext);
+  const { addNotification } = useContext(NotificationContext);
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("user");
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     const token = localStorage.getItem("auth_token");
     if (!token) {
-      setError("You must be logged in to register users.");
+      addNotification({ message: "You must be logged in to register users.", type: "error" });
       navigate("/auth/login", { replace: true });
       return;
     }
@@ -26,49 +25,41 @@ const Register = () => {
     if (!user) {
       fetchUser(token).catch((err) => {
         console.error("Failed to fetch user data:", err);
-        setError("Failed to verify user. Please log in again.");
+        addNotification({ message: "Failed to verify user. Please log in again.", type: "error" });
         localStorage.removeItem("auth_token");
         setUser(null);
         navigate("/auth/login", { replace: true });
       });
-    }
-  }, [user, fetchUser, navigate, setUser]);
-
-  useEffect(() => {
-    if (user && user.role !== "admin") {
-      setError("You must be an admin to register users.");
+    } else if (user.role !== "admin") {
+      addNotification({ message: "You must be an admin to register users.", type: "error" });
       navigate("/admin/dashboard", { replace: true });
     }
-  }, [user, navigate]);
+  }, [user, fetchUser, navigate, setUser, showNotification]);
 
   const handleRegister = async (e) => {
     e.preventDefault();
-    setError("");
-    setSuccess("");
     setLoading(true);
 
     if (username.trim().length < 3) {
-      setError("Username must be at least 3 characters long.");
+      addNotification({ message: "Username must be at least 3 characters long.", type: "error" });
       setLoading(false);
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email.trim())) {
-      setError("Please enter a valid email address.");
+      addNotification({ message: "Please enter a valid email address.", type: "error" });
       setLoading(false);
       return;
     }
 
     if (password.length < 6) {
-      setError("Password must be at least 6 characters long.");
+      addNotification({ message: "Password must be at least 6 characters long.", type: "error" });
       setLoading(false);
       return;
     }
 
     const token = localStorage.getItem("auth_token");
-    console.log("Token used for registration:", token);
-
     const userData = {
       username: username.trim(),
       email: email.trim(),
@@ -76,13 +67,9 @@ const Register = () => {
       role,
     };
 
-    console.log("Sending data:", userData);
-
     try {
-      const response = await fetch("http://127.0.0.1:5000/auth/register", {
+      const response = await fetch("https://api.regisamtech.co.ke/auth/register", {
         method: "POST",
-        mode: "cors",
-        credentials: "include",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -90,31 +77,28 @@ const Register = () => {
         body: JSON.stringify(userData),
       });
 
-      console.log("Response status:", response.status);
       const data = await response.json();
-      console.log("Response data:", data);
-
       if (response.ok) {
-        setSuccess("User registered successfully!");
+        addNotification({ message: "User registered successfully!", type: "success" });
         setUsername("");
         setEmail("");
         setPassword("");
         setRole("user");
         setTimeout(() => {
-          navigate("/admin/dashboard", { replace: true });
+          navigate("/admin/user-list", { replace: true });
         }, 2000);
-      } else if (response.status === 422) {
-        // Token is invalid or expired
-        setError("Your session has expired. Please log in again.");
-        localStorage.removeItem("auth_token");
-        setUser(null);
-        navigate("/auth/login", { replace: true });
       } else {
-        setError(data.message || "Registration failed. Please try again.");
+        addNotification({ message: data.message || "Registration failed. Please try again.", type: "error" });
+        if (response.status === 401 || response.status === 422) {
+          addNotification({ message: "Your session has expired. Please log in again.", type: "error" });
+          localStorage.removeItem("auth_token");
+          setUser(null);
+          navigate("/auth/login", { replace: true });
+        }
       }
     } catch (error) {
       console.error("Error:", error);
-      setError("An error occurred while registering the user. Please try again.");
+      addNotification({ message: "An error occurred while registering the user.", type: "error" });
     } finally {
       setLoading(false);
     }
@@ -131,16 +115,12 @@ const Register = () => {
   }
 
   return (
-    <Container className="mt-5">
+    <Container fluid className="mt-5 animate__animated animate__fadeIn">
       <Row className="justify-content-center">
         <Col md={6}>
-          <Card>
+          <Card className="shadow-sm">
             <Card.Body>
               <h3 className="text-center">Register New User</h3>
-
-              {error && <Alert variant="danger">{error}</Alert>}
-              {success && <Alert variant="success">{success}</Alert>}
-
               <Form onSubmit={handleRegister}>
                 <Form.Group className="mb-3">
                   <Form.Label>Username</Form.Label>
@@ -153,7 +133,6 @@ const Register = () => {
                     disabled={loading}
                   />
                 </Form.Group>
-
                 <Form.Group className="mb-3">
                   <Form.Label>Email address</Form.Label>
                   <Form.Control
@@ -165,7 +144,6 @@ const Register = () => {
                     disabled={loading}
                   />
                 </Form.Group>
-
                 <Form.Group className="mb-3">
                   <Form.Label>Password</Form.Label>
                   <Form.Control
@@ -177,7 +155,6 @@ const Register = () => {
                     disabled={loading}
                   />
                 </Form.Group>
-
                 <Form.Group className="mb-3">
                   <Form.Label>Role</Form.Label>
                   <Form.Control
@@ -188,10 +165,16 @@ const Register = () => {
                   >
                     <option value="user">User</option>
                     <option value="admin">Admin</option>
+                    <option value="doctor">Doctor</option>
+                    <option value="marketer">Marketer</option>
                   </Form.Control>
                 </Form.Group>
-
-                <Button type="submit" variant="primary" className="w-100" disabled={loading}>
+                <Button
+                  type="submit"
+                  variant="info"
+                  className="w-100 btn-fill"
+                  disabled={loading}
+                >
                   {loading ? (
                     <>
                       <Spinner

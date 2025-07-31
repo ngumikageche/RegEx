@@ -18,7 +18,7 @@ const handleLogin = async (e) => {
   console.log("Attempting login with:", { email, password });
 
   try {
-    const response = await fetch("http://127.0.0.1:5000/auth/login", {
+    const response = await fetch("https://api.regisamtech.co.ke/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),

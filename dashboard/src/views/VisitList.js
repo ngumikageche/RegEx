@@ -159,7 +159,7 @@ function VisitList() {
     setError("");
 
     try {
-      let url = "http://127.0.0.1:5000/visit/";
+      let url = "https://api.regisamtech.co.ke/visit/";
       if (user.role === "admin") {
         const params = new URLSearchParams();
         if (startDate) params.append("start_date", startDate);
@@ -230,7 +230,7 @@ function VisitList() {
     };
 
     try {
-      const response = await fetch(`http://127.0.0.1:5000/visit/${editingVisit.id}`, {
+      const response = await fetch(`https://api.regisamtech.co.ke/visit/${editingVisit.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -266,7 +266,7 @@ function VisitList() {
     }
 
     try {
-      const response = await fetch(`http://127.0.0.1:5000/visit/${visitId}`, {
+      const response = await fetch(`https://api.regisamtech.co.ke/visit/${visitId}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",

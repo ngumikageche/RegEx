@@ -14,7 +14,7 @@ function NotificationBell({ layout }) {
 
     const fetchUnreadNotifications = async () => {
       try {
-        const response = await fetch("http://127.0.0.1:5000/notifications/", {
+        const response = await fetch("https://api.regisamtech.co.ke/notifications/", {
           method: "GET",
           headers: {
             "Content-Type": "application/json",

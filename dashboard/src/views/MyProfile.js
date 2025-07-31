@@ -99,7 +99,7 @@ function MyProfile() {
     };
 
     try {
-      const response = await fetch("http://127.0.0.1:5000/user/me", {
+      const response = await fetch("https://api.regisamtech.co.ke/user/me", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -144,7 +144,7 @@ function MyProfile() {
 
     try {
       console.log("Sending password change request:", passwordData);
-      const response = await fetch("http://127.0.0.1:5000/user/users/change-password", {
+      const response = await fetch("https://api.regisamtech.co.ke/user/users/change-password", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

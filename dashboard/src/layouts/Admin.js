@@ -1,14 +1,11 @@
 import React from "react";
 import { useLocation, Route, Routes } from "react-router-dom";
-
 import AdminNavbar from "components/Navbars/AdminNavbar";
 import Footer from "components/Footer/Footer";
 import Sidebar from "components/Sidebar/Sidebar";
 import FixedPlugin from "components/FixedPlugin/FixedPlugin.js";
-
-import routes from "../routes.js"; // Import the single routes file
-
-import sidebarImage from "assets/img/sidebar-3.jpg"; // This image should exist
+import routes from "../routes.js";
+import sidebarImage from "assets/img/sidebar-3.jpg";
 
 function Admin() {
   const [image, setImage] = React.useState(sidebarImage);
@@ -18,13 +15,36 @@ function Admin() {
   const mainPanel = React.useRef(null);
 
   const getRoutes = (routes) => {
-    return routes.map((prop, key) => {
-      if (prop.layout === "/admin") {
-        const Component = prop.component;
-        return <Route path={prop.path} element={<Component />} key={key} />;
-      }
-      return null;
-    });
+    return routes
+      .flatMap((prop, key) => {
+        // Handle top-level routes
+        const topLevelRoute = prop.layout === "/admin" && prop.component
+          ? [
+              <Route
+                path={prop.path}
+                element={<prop.component />}
+                key={`top-${key}`}
+              />,
+            ]
+          : [];
+
+        // Handle nested views
+        const nestedRoutes =
+          prop.collapse && prop.views
+            ? prop.views
+                .filter((sub) => sub.layout === "/admin" && sub.component)
+                .map((sub, subKey) => (
+                  <Route
+                    path={`${sub.layout}${sub.path}`}
+                    element={<sub.component />}
+                    key={`sub-${key}-${subKey}`}
+                  />
+                ))
+            : [];
+
+        return [...topLevelRoute, ...nestedRoutes];
+      })
+      .filter(Boolean);
   };
 
   React.useEffect(() => {
@@ -32,7 +52,10 @@ function Admin() {
     document.scrollingElement.scrollTop = 0;
     if (mainPanel.current) mainPanel.current.scrollTop = 0;
 
-    if (window.innerWidth < 993 && document.documentElement.classList.contains("nav-open")) {
+    if (
+      window.innerWidth < 993 &&
+      document.documentElement.classList.contains("nav-open")
+    ) {
       document.documentElement.classList.toggle("nav-open");
       const element = document.getElementById("bodyClick");
       if (element) element.parentNode.removeChild(element);

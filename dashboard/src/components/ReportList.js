@@ -17,7 +17,7 @@ function ReportList({ user, token, role, onEdit }) {
           headers["X-User-Role"] = role; // Add role header for admin
         }
 
-        const response = await fetch("http://127.0.0.1:5000/report/", { // Adjust endpoint as needed
+        const response = await fetch("https://api.regisamtech.co.ke/report/", { // Adjust endpoint as needed
           method: "GET",
           headers,
         });

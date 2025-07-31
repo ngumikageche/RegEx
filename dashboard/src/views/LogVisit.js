@@ -100,7 +100,7 @@ function LogVisit() {
     console.log("Token:", token);
 
     try {
-      const response = await fetch("http://127.0.0.1:5000/visit/", {
+      const response = await fetch("https://api.regisamtech.co.ke/visit/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
