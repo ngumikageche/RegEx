@@ -1,8 +1,15 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { Modal, Button, Form, Spinner } from "react-bootstrap";
+import React, { useState, useEffect, useCallback, useContext } from "react";
+import { Modal, Button, Form, Spinner, Table, Nav } from "react-bootstrap";
 import { useForm } from "react-hook-form";
 import { NotificationContext } from "../context/NotificationContext";
-import { useContext } from "react";
+import {
+  fetchCategories,
+  fetchProducts,
+  addCategory,
+  deleteCategory,
+  addProduct,
+  deleteProduct
+} from "../api/items";
 
 function Catalogue() {
   const [categories, setCategories] = useState([]);
@@ -10,53 +17,41 @@ function Catalogue() {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showProductModal, setShowProductModal] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("productList"); // State to track active tab
   const { addNotification } = useContext(NotificationContext);
 
   const API_BASE = "https://api.regisamtech.co.ke";
   const getToken = () => localStorage.getItem("auth_token");
 
-  const fetchCategories = useCallback(async () => {
+  const fetchCategoriesCallback = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/categories/`, {
-        headers: { Authorization: `Bearer ${getToken()}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setCategories(data.categories || []);
-      } else {
-        addNotification({ message: "Failed to fetch categories", type: "error" });
-      }
+      const data = await fetchCategories();
+      setCategories(data.categories || []);
     } catch (err) {
-      addNotification({ message: "Network error", type: "error" });
+      addNotification({ message: err.message || "Network error", type: "error" });
     } finally {
       setLoading(false);
     }
   }, [addNotification]);
 
-  const fetchProducts = useCallback(async () => {
+  // REMOVED: Old fetchProducts function
+  const fetchProductsCallback = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/products/`, {
-        headers: { Authorization: `Bearer ${getToken()}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setProducts(data.products || []);
-      } else {
-        addNotification({ message: "Failed to fetch products", type: "error" });
-      }
+      const data = await fetchProducts();
+      setProducts(data.products || []);
     } catch (err) {
-      addNotification({ message: "Network error", type: "error" });
+      addNotification({ message: err.message || "Network error", type: "error" });
     } finally {
       setLoading(false);
     }
   }, [addNotification]);
 
   useEffect(() => {
-    fetchCategories();
-    fetchProducts();
-  }, [fetchCategories, fetchProducts]);
+    fetchCategoriesCallback();
+    fetchProductsCallback();
+  }, [fetchCategoriesCallback, fetchProductsCallback]);
 
   const handleAddCategory = async (data) => {
     setLoading(true);
@@ -67,7 +62,7 @@ function Catalogue() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${getToken()}`,
         },
-        body: JSON.stringify({ name: data.categoryName, description: data.categoryDesc }),
+        body: JSON.stringify({ name: data.categoryName, description: data.categoryDesc, status: "Active" }),
       });
       if (res.ok) {
         setShowCategoryModal(false);
@@ -130,6 +125,20 @@ function Catalogue() {
         fetchProducts();
         addNotification({ message: "Product added successfully", type: "success" });
       } else {
+  // API utility-based handler
+  const handleAddCategory = async (data) => {
+    setLoading(true);
+    try {
+      await addCategory(data);
+      setShowCategoryModal(false);
+      fetchCategoriesCallback();
+      addNotification({ message: "Category added successfully", type: "success" });
+    } catch (err) {
+      addNotification({ message: err.message || "Failed to add category", type: "error" });
+    } finally {
+      setLoading(false);
+    }
+  };
         addNotification({ message: "Failed to add product", type: "error" });
       }
     } catch (err) {
@@ -151,6 +160,20 @@ function Catalogue() {
         fetchProducts();
         addNotification({ message: "Product deleted successfully", type: "success" });
       } else {
+  // API utility-based handler
+  const handleDeleteCategory = async (id) => {
+    if (!window.confirm("Delete this category?")) return;
+    setLoading(true);
+    try {
+      await deleteCategory(id);
+      fetchCategoriesCallback();
+      addNotification({ message: "Category deleted successfully", type: "success" });
+    } catch (err) {
+      addNotification({ message: err.message || "Failed to delete category", type: "error" });
+    } finally {
+      setLoading(false);
+    }
+  };
         addNotification({ message: "Failed to delete product", type: "error" });
       }
     } catch (err) {
@@ -163,116 +186,159 @@ function Catalogue() {
   const categoryForm = useForm();
   const productForm = useForm();
 
+  // Calculate accurate counts
+  const totalProducts = products.length;
+  const currentUsedProducts = products.filter(prod => prod.status === "Active").length;
+
   return (
     <div className="content">
       <div className="container-fluid p-4">
-        <h1 className="text-center mb-5 text-primary">Catalogue</h1>
-        {loading && (
-          <div className="d-flex justify-content-center mb-4">
-            <Spinner animation="border" role="status">
-              <span className="visually-hidden">Loading...</span>
-            </Spinner>
-          </div>
+        <Nav variant="tabs" activeKey={activeTab} onSelect={(k) => setActiveTab(k)} className="mb-4">
+          <Nav.Item>
+            <Nav.Link eventKey="productList" active={activeTab === "productList"} style={{ color: activeTab === "productList" ? "#6f42c1" : "#000" }}>
+              Product List
+            </Nav.Link>
+          </Nav.Item>
+          <Nav.Item>
+            <Nav.Link eventKey="manageCategories" active={activeTab === "manageCategories"} style={{ color: activeTab === "manageCategories" ? "#6f42c1" : "#000" }}>
+              Manage Categories
+            </Nav.Link>
+          </Nav.Item>
+        </Nav>
+
+        {activeTab === "productList" && (
+          <>
+            {loading && (
+              <div className="d-flex justify-content-center mb-4">
+                <Spinner animation="border" role="status">
+                  <span className="visually-hidden">Loading...</span>
+                </Spinner>
+              </div>
+            )}
+            <div style={{ backgroundColor: "white", padding: "20px", borderRadius: "5px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+                <h3>Products</h3>
+                <div>
+                  <Button variant="purple" style={{ marginRight: "10px" }} onClick={() => setShowProductModal(true)}>
+                    Add new
+                  </Button>
+                  <Button variant="secondary">Import products</Button>
+                  <Button variant="secondary" style={{ marginLeft: "10px" }}>Export products (Excel)</Button>
+                  <Button variant="purple" style={{ marginLeft: "10px" }}><i className="fas fa-filter"></i></Button>
+                </div>
+              </div>
+              <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "10px" }}>
+                <span>Total products: {totalProducts} | Current used: {currentUsedProducts}</span>
+              </div>
+              {loading ? (
+                <div className="text-center"><i className="fas fa-spinner fa-spin"></i> Loading...</div>
+              ) : (
+                <Table striped bordered hover>
+                  <thead>
+                    <tr>
+                      <th>Photo</th>
+                      <th>Product name</th>
+                      <th>Price</th>
+                      <th>Category</th>
+                      <th>Status</th>
+                      <th>Operation</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {products.length === 0 ? (
+                      <tr>
+                        <td colSpan="7" className="text-center">No products available.</td>
+                      </tr>
+                    ) : (
+                      products.map((prod) => (
+                        <tr key={prod.id}>
+                          <td><img src={prod.photo || "https://via.placeholder.com/40"} alt="Product" style={{ width: "40px", height: "40px", borderRadius: "50%" }} /></td>
+                          <td>{prod.name}</td>
+                          <td>${prod.price || "0.00"}</td>
+                          <td>{categories.find((c) => c.id === prod.category_id)?.name || "Unknown"}</td>
+                          <td>
+                            <span style={{ backgroundColor: prod.status === "Active" ? "#d4edda" : "#f8d7da", padding: "5px 10px", borderRadius: "10px", color: prod.status === "Active" ? "#155724" : "#721c24" }}>
+                              {prod.status || "Active"}
+                            </span>
+                          </td>
+                          <td><i className="fas fa-pen"></i> <i className="fas fa-trash" onClick={() => handleDeleteProduct(prod.id)} style={{ cursor: "pointer", marginLeft: "10px" }}></i></td>
+                          <td><Button variant="primary" size="sm" onClick={() => {/* View logic */}}>View</Button></td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </Table>
+              )}
+            </div>
+          </>
         )}
-        <div className="row">
-          <div className="col-lg-6 col-md-12 mb-4">
-            <div className="card animate__animated animate__fadeIn">
-              <div className="card-header">
-                <div className="d-flex justify-content-between align-items-center">
-                  <h3 className="card-title">Categories</h3>
-                  <Button
-                    variant="primary"
-                    onClick={() => setShowCategoryModal(true)}
-                    className="btn-fill"
-                  >
-                    <i className="fas fa-plus me-2"></i> Add Category
+
+        {activeTab === "manageCategories" && (
+          <>
+            {loading && (
+              <div className="d-flex justify-content-center mb-4">
+                <Spinner animation="border" role="status">
+                  <span className="visually-hidden">Loading...</span>
+                </Spinner>
+              </div>
+            )}
+            <div style={{ backgroundColor: "white", padding: "20px", borderRadius: "5px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+                <h3>Categories</h3>
+                <div>
+                  <Button variant="purple" style={{ marginRight: "10px" }} onClick={() => setShowCategoryModal(true)}>
+                    Add new
                   </Button>
+                  <Button variant="secondary">Import categories</Button>
+                  <Button variant="secondary" style={{ marginLeft: "10px" }}>Export categories (Excel)</Button>
+                  <Button variant="purple" style={{ marginLeft: "10px" }}><i className="fas fa-filter"></i></Button>
                 </div>
               </div>
-              <div className="card-body">
-                {categories.length === 0 ? (
-                  <p className="text-muted text-center">No categories yet.</p>
-                ) : (
-                  <ul className="list-group list-group-flush">
-                    {categories.map((cat) => (
-                      <li
-                        key={cat.id}
-                        className="list-group-item animate__animated animate__fadeInLeft"
-                      >
-                        <div className="d-flex justify-content-between align-items-start">
-                          <div>
-                            <h5 className="mb-1">{cat.name}</h5>
-                            {cat.description && (
-                              <p className="text-muted mb-0">{cat.description}</p>
-                            )}
-                          </div>
-                          <Button
-                            variant="link"
-                            onClick={() => handleDeleteCategory(cat.id)}
-                            className="text-danger"
-                          >
-                            <i className="fas fa-trash"></i>
-                          </Button>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+              <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "10px" }}>
+                <span>Total categories: {categories.length} | Current used: {categories.filter(c => c.status === "Active").length}</span>
               </div>
+              {loading ? (
+                <div className="text-center"><i className="fas fa-spinner fa-spin"></i> Loading...</div>
+              ) : (
+                <Table striped bordered hover>
+                  <thead>
+                    <tr>
+                      <th>Photo</th>
+                      <th>Name</th>
+                      <th>Description</th>
+                      <th>Status</th>
+                      <th>Operation</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {categories.length === 0 ? (
+                      <tr>
+                        <td colSpan="6" className="text-center">No categories available.</td>
+                      </tr>
+                    ) : (
+                      categories.map((cat) => (
+                        <tr key={cat.id}>
+                          <td><img src={cat.photo || "https://via.placeholder.com/40"} alt="Category" style={{ width: "40px", height: "40px", borderRadius: "50%" }} /></td>
+                          <td>{cat.name}</td>
+                          <td>{cat.description || "N/A"}</td>
+                          <td>
+                            <span style={{ backgroundColor: cat.status === "Active" ? "#d4edda" : "#f8d7da", padding: "5px 10px", borderRadius: "10px", color: cat.status === "Active" ? "#155724" : "#721c24" }}>
+                              {cat.status || "Active"}
+                            </span>
+                          </td>
+                          <td><i className="fas fa-pen"></i> <i className="fas fa-trash" onClick={() => handleDeleteCategory(cat.id)} style={{ cursor: "pointer", marginLeft: "10px" }}></i></td>
+                          <td><Button variant="primary" size="sm" onClick={() => {/* View logic */}}>View</Button></td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </Table>
+              )}
             </div>
-          </div>
-          <div className="col-lg-6 col-md-12 mb-4">
-            <div className="card animate__animated animate__fadeIn">
-              <div className="card-header">
-                <div className="d-flex justify-content-between align-items-center">
-                  <h3 className="card-title">Items</h3>
-                  <Button
-                    variant="success"
-                    onClick={() => setShowProductModal(true)}
-                    className="btn-fill"
-                  >
-                    <i className="fas fa-plus me-2"></i> Add Item
-                  </Button>
-                </div>
-              </div>
-              <div className="card-body">
-                {products.length === 0 ? (
-                  <p className="text-muted text-center">No items yet.</p>
-                ) : (
-                  <ul className="list-group list-group-flush">
-                    {products.map((prod) => (
-                      <li
-                        key={prod.id}
-                        className="list-group-item animate__animated animate__fadeInRight"
-                      >
-                        <div className="d-flex justify-content-between align-items-start">
-                          <div>
-                            <h5 className="mb-1">{prod.name}</h5>
-                            <p className="text-muted mb-0">
-                              {categories.find((c) => c.id === prod.category_id)?.name ||
-                                "Unknown"}{" "}
-                              &bull; ${prod.price}
-                            </p>
-                            {prod.description && (
-                              <p className="text-muted mb-0">{prod.description}</p>
-                            )}
-                          </div>
-                          <Button
-                            variant="link"
-                            onClick={() => handleDeleteProduct(prod.id)}
-                            className="text-danger"
-                          >
-                            <i className="fas fa-trash"></i>
-                          </Button>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
+          </>
+        )}
 
         {/* Category Modal */}
         <Modal
@@ -285,18 +351,8 @@ function Catalogue() {
           animation
           className="animate__animated animate__slideInUp"
         >
-          <Modal.Header>
+          <Modal.Header closeButton>
             <Modal.Title>Add Category</Modal.Title>
-            <Button
-              variant="link"
-              onClick={() => {
-                setShowCategoryModal(false);
-                categoryForm.reset();
-              }}
-              className="text-muted"
-            >
-              <i className="fas fa-times"></i>
-            </Button>
           </Modal.Header>
           <Modal.Body>
             <Form onSubmit={categoryForm.handleSubmit(handleAddCategory)}>
@@ -359,18 +415,8 @@ function Catalogue() {
           animation
           className="animate__animated animate__slideInUp"
         >
-          <Modal.Header>
+          <Modal.Header closeButton>
             <Modal.Title>Add Item</Modal.Title>
-            <Button
-              variant="link"
-              onClick={() => {
-                setShowProductModal(false);
-                productForm.reset();
-              }}
-              className="text-muted"
-            >
-              <i className="fas fa-times"></i>
-            </Button>
           </Modal.Header>
           <Modal.Body>
             <Form onSubmit={productForm.handleSubmit(handleAddProduct)}>

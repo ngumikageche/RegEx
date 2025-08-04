@@ -1,17 +1,13 @@
 import Dashboard from "views/Dashboard.js";
-import UserProfile from "views/UserProfile.js";
-import TableList from "views/TableList.js";
-import Typography from "views/Typography.js";
-import Icons from "views/Icons.js";
-import Maps from "views/Maps.js";
+import UserManagement from "views/usermanagement.jsx";
 import Notifications from "views/Notifications.js";
 import Register from "views/Register.js";
 import MyProfile from "views/MyProfile.js";
-import UserList from "views/UserList.js";
 import LogVisit from "views/LogVisit.js";
+import VisitLog from "views/logging.jsx";
 import VisitList from "views/VisitList.js";
 
-import Catalogue from "views/Catalogue.js";
+import Catalogue from "views/Catalogue.jsx";
 
 const dashboardRoutes = [
     // Admin Layout Routes
@@ -30,39 +26,24 @@ const dashboardRoutes = [
         layout: "/admin",
     },
     {
-        name: "User Management",
+        path: "/user-settings",
+        name: "Settings",
         icon: "fa fa-users-cog text-info",
-        collapse: true,
-        state: "userManagementCollapse",
-        views: [
-            {
-                path: "/user-profile",
-                name: "User Profile",
-                icon: "fa fa-user text-info",
-                component: UserProfile,
-                layout: "/admin",
-            },
-            {
-                path: "/user-list",
-                name: "User List",
-                icon: "fa fa-users text-secondary",
-                component: UserList,
-                layout: "/admin",
-            },
-            {
-                path: "/add-user",
-                name: "Add User",
-                icon: "fa fa-user-plus text-success",
-                component: Register,
-                layout: "/admin",
-            }
-        ]
+        component: UserManagement,
+        layout: "/admin",
     },
     {
         path: "/log-visit",
         name: "Log Visit",
         icon: "fa fa-clipboard-list text-warning",
         component: LogVisit,
+        layout: "/admin",
+    },
+    {
+        path: "/log-activity",
+        name: "Log Activity",
+        icon: "fa fa-history text-primary",
+        component: VisitLog,
         layout: "/admin",
     },
     {
@@ -108,6 +89,13 @@ const dashboardRoutes = [
         name: "Log Visit",
         icon: "fa fa-clipboard-list text-warning",
         component: LogVisit,
+        layout: "/user",
+    },
+    {
+        path: "/log-activity",
+        name: "Log Activity",
+        icon: "fa fa-history text-primary",
+        component: VisitLog,
         layout: "/user",
     },
     {
