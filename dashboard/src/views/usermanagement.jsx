@@ -6,16 +6,19 @@ import { Card, Button, Modal, Form, Container, Row, Col, Spinner, Table, Nav } f
 import defaultAvatar from "../assets/img/default-avatar.png";
 import {
   fetchUsers as apiFetchUsers,
-  fetchRoles as apiFetchRoles,
+  fetchGroups as apiFetchGroups,
   addUser as apiAddUser,
   updateUser as apiUpdateUser,
-  addRole as apiAddRole,
+  addGroup as apiAddGroup,
+  assignUsersToGroup,
+  removeUsersFromGroup,
+  deleteGroup,
   changePassword as apiChangePassword
 } from "../api/users";
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
-  const [roles, setRoles] = useState([]);
+  const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState("");
@@ -32,7 +35,7 @@ const UserManagement = () => {
 
   useEffect(() => {
     fetchUsers();
-    fetchRoles();
+    fetchGroups();
   }, []);
 
   const fetchUsers = async () => {
@@ -47,26 +50,26 @@ const UserManagement = () => {
     }
   };
 
-  const fetchRoles = async () => {
+  const fetchGroups = async () => {
     setLoading(true);
     try {
-      const roles = await apiFetchRoles();
-      setRoles(roles);
+      const groups = await apiFetchGroups();
+      setGroups(groups);
     } catch (err) {
-      setRoles([]);
+      setGroups([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleShowModal = (type, user = null, role = null) => {
+  const handleShowModal = (type, user = null, group = null) => {
     setModalType(type);
     if (type === "addUser" || type === "editUser") {
       setSelectedUser(user);
       setForm(user ? { name: user.name, mobile: user.mobile, email: user.email, status: user.status } : { name: "", mobile: "", email: "", status: "Active" });
-    } else if (type === "addRole" || type === "editRole") {
-      setSelectedRole(role);
-      setRoleForm(role ? { roleName: role.roleName, description: role.description, status: role.status } : { roleName: "", description: "", status: "Active" });
+    } else if (type === "addGroup" || type === "editGroup") {
+      setSelectedRole(group);
+      setGroupForm(group ? { groupName: group.name, description: group.description, status: group.status } : { groupName: "", description: "", status: "Active" });
     } else if (type === "changePassword") {
       setSelectedUser(user);
       setPasswordForm({ oldPassword: "", newPassword: "", confirmPassword: "" });
@@ -158,29 +161,31 @@ const UserManagement = () => {
     }
   };
 
-  const handleAddRole = async (e) => {
+  const handleAddGroup = async (e) => {
     e.preventDefault();
-    if (roleForm.roleName.trim().length < 3) {
-      addNotification({ message: "Role name must be at least 3 characters long.", type: "error" });
+    if (groupForm.groupName.trim().length < 3) {
+      addNotification({ message: "Group name must be at least 3 characters long.", type: "error" });
       return;
     }
-    const roleData = {
-      roleName: roleForm.roleName.trim(),
-      description: roleForm.description.trim(),
-      status: roleForm.status,
+    const groupData = {
+      name: groupForm.groupName.trim(),
+      description: groupForm.description.trim(),
+      status: groupForm.status,
     };
     try {
-      const { ok, data } = await apiAddRole(roleData);
+      const { ok, data } = await apiAddGroup(groupData);
       if (ok) {
-        addNotification({ message: "Role added successfully!", type: "success" });
-        setRoleForm({ roleName: "", description: "", status: "Active" });
-        fetchRoles();
+        addNotification({ message: "Group added successfully!", type: "success" });
+        setGroupForm({ groupName: "", description: "", status: "Active" });
+        fetchGroups();
         handleCloseModal();
       } else {
-        addNotification({ message: data.message || "Failed to add role. Please try again.", type: "error" });
+        // Show backend error if available, else generic message
+        addNotification({ message: data.error || data.message || "Failed to add group. Please try again.", type: "error" });
       }
     } catch (error) {
-      addNotification({ message: "An error occurred while adding the role.", type: "error" });
+      // Show error message from backend if available
+      addNotification({ message: error?.message || "An error occurred while adding the group.", type: "error" });
     }
   };
 
@@ -302,13 +307,13 @@ const UserManagement = () => {
           <Col md={12}>
             <div className="d-flex justify-content-between align-items-center mb-3">
               <div>
-                <Button variant="purple" onClick={() => handleShowModal("addRole")}>Add new</Button>
-                <Button variant="secondary" className="ms-2">Import roles</Button>
-                <Button variant="secondary" className="ms-2">Export roles (Excel)</Button>
+                <Button variant="purple" onClick={() => handleShowModal("addGroup")}>Add new</Button>
+                <Button variant="secondary" className="ms-2">Import groups</Button>
+                <Button variant="secondary" className="ms-2">Export groups (Excel)</Button>
               </div>
               <div>
-                <span>Total roles: {roles.length}</span>
-                <span className="ms-3">Current used: {roles.filter(r => r.status === "Active").length}</span>
+                <span>Total groups: {groups.length}</span>
+                <span className="ms-3">Current used: {groups.filter(g => g.status === "Active").length}</span>
                 <Button variant="purple" className="ms-3">Filter</Button>
               </div>
             </div>
@@ -319,7 +324,7 @@ const UserManagement = () => {
                 <thead>
                   <tr>
                     <th>Photo</th>
-                    <th>Role Name</th>
+                    <th>Group Name</th>
                     <th>Description</th>
                     <th>Status</th>
                     <th>Operation</th>
@@ -327,18 +332,18 @@ const UserManagement = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {roles.map((role) => (
-                    <tr key={role.id}>
-                      <td><img src={role.photo || defaultAvatar} alt="Role" style={{ width: "40px", height: "40px", borderRadius: "50%" }} /></td>
-                      <td>{role.roleName}</td>
-                      <td>{role.description || "N/A"}</td>
+                  {groups.map((group) => (
+                    <tr key={group.id}>
+                      <td><img src={group.photo || defaultAvatar} alt="Group" style={{ width: "40px", height: "40px", borderRadius: "50%" }} /></td>
+                      <td>{group.name}</td>
+                      <td>{group.description || "N/A"}</td>
                       <td>
-                        <span style={{ color: role.status === "Inactive" ? "red" : "green" }}>
-                          {role.status}
+                        <span style={{ color: group.status === "Inactive" ? "red" : "green" }}>
+                          {group.status}
                         </span>
                       </td>
                       <td>
-                        <Button variant="link" className="p-0 me-2" onClick={() => handleShowModal("editRole", null, role)}><i className="bi bi-pencil"></i></Button>
+                        <Button variant="link" className="p-0 me-2" onClick={() => handleShowModal("editGroup", null, group)}><i className="bi bi-pencil"></i></Button>
                         <Button variant="link" className="p-0 me-2" onClick={() => {/* Delete logic */}}><i className="bi bi-trash"></i></Button>
                       </td>
                       <td>
@@ -416,47 +421,47 @@ const UserManagement = () => {
               </Button>
             </Form>
           )}
-          {modalType === "addRole" && (
-            <Form onSubmit={handleAddRole}>
+          {modalType === "addGroup" && (
+            <Form onSubmit={handleAddGroup}>
               <Form.Group className="mb-3">
-                <Form.Label>Role Name</Form.Label>
-                <Form.Control type="text" name="roleName" value={roleForm.roleName} onChange={handleRoleFormChange} required />
+                <Form.Label>Group Name</Form.Label>
+                <Form.Control type="text" name="groupName" value={groupForm.groupName} onChange={handleGroupFormChange} required />
               </Form.Group>
               <Form.Group className="mb-3">
                 <Form.Label>Description</Form.Label>
-                <Form.Control as="textarea" name="description" value={roleForm.description} onChange={handleRoleFormChange} />
+                <Form.Control as="textarea" name="description" value={groupForm.description} onChange={handleGroupFormChange} />
               </Form.Group>
               <Form.Group className="mb-3">
                 <Form.Label>Status</Form.Label>
-                <Form.Control as="select" name="status" value={roleForm.status} onChange={handleRoleFormChange}>
+                <Form.Control as="select" name="status" value={groupForm.status} onChange={handleGroupFormChange}>
                   <option value="Active">Active</option>
                   <option value="Inactive">Inactive</option>
                 </Form.Control>
               </Form.Group>
               <Button variant="purple" type="submit" disabled={loading}>
-                {loading ? <><Spinner animation="border" size="sm" /> Adding...</> : "Add Role"}
+                {loading ? <><Spinner animation="border" size="sm" /> Adding...</> : "Add Group"}
               </Button>
             </Form>
           )}
-          {modalType === "editRole" && (
-            <Form onSubmit={handleAddRole}> {/* Reuse handleAddRole for simplicity; adjust if needed */}
+          {modalType === "editGroup" && (
+            <Form onSubmit={handleAddGroup}> {/* Reuse handleAddGroup for simplicity; adjust if needed */}
               <Form.Group className="mb-3">
-                <Form.Label>Role Name</Form.Label>
-                <Form.Control type="text" name="roleName" value={roleForm.roleName} onChange={handleRoleFormChange} required />
+                <Form.Label>Group Name</Form.Label>
+                <Form.Control type="text" name="groupName" value={groupForm.groupName} onChange={handleGroupFormChange} required />
               </Form.Group>
               <Form.Group className="mb-3">
                 <Form.Label>Description</Form.Label>
-                <Form.Control as="textarea" name="description" value={roleForm.description} onChange={handleRoleFormChange} />
+                <Form.Control as="textarea" name="description" value={groupForm.description} onChange={handleGroupFormChange} />
               </Form.Group>
               <Form.Group className="mb-3">
                 <Form.Label>Status</Form.Label>
-                <Form.Control as="select" name="status" value={roleForm.status} onChange={handleRoleFormChange}>
+                <Form.Control as="select" name="status" value={groupForm.status} onChange={handleGroupFormChange}>
                   <option value="Active">Active</option>
                   <option value="Inactive">Inactive</option>
                 </Form.Control>
               </Form.Group>
               <Button variant="info" type="submit" disabled={loading}>
-                {loading ? <><Spinner animation="border" size="sm" /> Updating...</> : "Update Role"}
+                {loading ? <><Spinner animation="border" size="sm" /> Updating...</> : "Update Group"}
               </Button>
             </Form>
           )}
