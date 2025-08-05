@@ -9,7 +9,7 @@ def app():
     app = create_app()
     app.config.update({
         "TESTING": True,
-        "SQLALCHEMY_DATABASE_URI": "postgresql://joseph:regisam_dev@localhost/test_reports",
+        "SQLALCHEMY_DATABASE_URI": "postgresql://joseph:regisam_dev@localhost/wms",
         "SQLALCHEMY_TRACK_MODIFICATIONS": False
     })
 

@@ -9,7 +9,7 @@ class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY", "fallback_secret_key")
 
     # Default to PostgreSQL
-    DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://joseph:regisam_dev@localhost:5433/wms")
+    DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://joseph:regisam_dev@localhost:5432/wms")
 
     SQLALCHEMY_DATABASE_URI = DATABASE_URL
     SQLALCHEMY_TRACK_MODIFICATIONS = False

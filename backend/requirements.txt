@@ -1,7 +1,9 @@
 alembic==1.15.1
 bcrypt==4.3.0
 blinker==1.9.0
+certifi==2025.8.3
 click==8.1.8
+cloudinary==1.44.1
 exceptiongroup==1.2.2
 Flask==3.1.0
 Flask-Bcrypt==1.0.1
@@ -11,6 +13,8 @@ Flask-Migrate==4.1.0
 Flask-SQLAlchemy==3.1.1
 Flask-Testing==0.8.1
 greenlet==3.1.1
+ibm_db==3.2.6
+ibm_db_sa==0.4.2
 iniconfig==2.1.0
 itsdangerous==2.2.0
 Jinja2==3.1.6
@@ -22,7 +26,9 @@ psycopg2==2.9.10
 PyJWT==2.10.1
 pytest==8.3.5
 python-dotenv==1.0.1
+six==1.17.0
 SQLAlchemy==2.0.39
 tomli==2.2.1
 typing_extensions==4.12.2
+urllib3==2.5.0
 Werkzeug==3.1.3

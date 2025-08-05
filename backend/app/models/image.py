@@ -9,7 +9,6 @@ from database import db
 class Image(BaseModel):
     __tablename__ = 'images'
 
-    id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128), nullable=False)
     url = db.Column(db.String(256), nullable=False)
     color = db.Column(db.String(32), nullable=True)

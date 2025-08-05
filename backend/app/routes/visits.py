@@ -17,6 +17,11 @@ def create_notification(user_id, message, commit=False):
         print("Committing notification to database...")
         db.session.commit()
 
+"""
+POST /visit/
+Requires: JSON { "doctor_name": str, "location": str, "visit_date": str (YYYY-MM-DD HH:MM:SS), "notes": str (optional) }
+Response: { "message": str }
+"""
 @visit_bp.route("/", methods=["POST"])
 @jwt_required()
 def log_visit():
@@ -88,6 +93,12 @@ def log_visit():
     print("Visit logged successfully, returning response.")
     return jsonify({"message": "Visit logged successfully"}), 201
 
+"""
+GET /visit/
+Admin: Optional query params: start_date, end_date, user_id, doctor_name
+Non-admin: No params, returns own visits
+Response: { "visits": [ { ... } ] }
+"""
 @visit_bp.route("/", methods=["GET"])
 @jwt_required()
 def get_visits():
@@ -146,6 +157,11 @@ def get_visits():
         ]
     }), 200
 
+"""
+PUT /visit/<visit_id>
+Requires: JSON { "doctor_name": str (optional), "location": str (optional), "visit_date": str (YYYY-MM-DD HH:MM:SS, optional), "notes": str (optional) }
+Response: { "message": str }
+"""
 @visit_bp.route("/<int:visit_id>", methods=["PUT"])
 @jwt_required()
 def update_visit(visit_id):
@@ -182,6 +198,11 @@ def update_visit(visit_id):
 
     return jsonify({"message": "Visit updated successfully"}), 200
 
+"""
+DELETE /visit/<visit_id>
+Requires: None
+Response: { "message": str }
+"""
 @visit_bp.route("/<int:visit_id>", methods=["DELETE"])
 @jwt_required()
 def delete_visit(visit_id):
