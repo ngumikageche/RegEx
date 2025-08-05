@@ -9,7 +9,7 @@ import {
   deleteCategory,
   addProduct,
   deleteProduct
-} from "../api/items";
+} from "../api/catalogue";
 
 function Catalogue() {
   const [categories, setCategories] = useState([]);
@@ -19,9 +19,6 @@ function Catalogue() {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("productList"); // State to track active tab
   const { addNotification } = useContext(NotificationContext);
-
-  const API_BASE = "https://api.regisamtech.co.ke";
-  const getToken = () => localStorage.getItem("auth_token");
 
   const fetchCategoriesCallback = useCallback(async () => {
     setLoading(true);
@@ -35,7 +32,6 @@ function Catalogue() {
     }
   }, [addNotification]);
 
-  // REMOVED: Old fetchProducts function
   const fetchProductsCallback = useCallback(async () => {
     setLoading(true);
     try {
@@ -56,79 +52,6 @@ function Catalogue() {
   const handleAddCategory = async (data) => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/categories/`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${getToken()}`,
-        },
-        body: JSON.stringify({ name: data.categoryName, description: data.categoryDesc, status: "Active" }),
-      });
-      if (res.ok) {
-        setShowCategoryModal(false);
-        fetchCategories();
-        addNotification({ message: "Category added successfully", type: "success" });
-      } else {
-        addNotification({ message: "Failed to add category", type: "error" });
-      }
-    } catch (err) {
-      addNotification({ message: "Network error", type: "error" });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDeleteCategory = async (id) => {
-    if (!window.confirm("Delete this category?")) return;
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_BASE}/categories/${id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${getToken()}` },
-      });
-      if (res.ok) {
-        fetchCategories();
-        addNotification({ message: "Category deleted successfully", type: "success" });
-      } else {
-        addNotification({ message: "Failed to delete category", type: "error" });
-      }
-    } catch (err) {
-      addNotification({ message: "Network error", type: "error" });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAddProduct = async (data) => {
-    const cat = categories.find((c) => c.name === data.productCategory);
-    if (!cat) {
-      addNotification({ message: "Invalid category selected", type: "error" });
-      return;
-    }
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_BASE}/products/`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${getToken()}`,
-        },
-        body: JSON.stringify({
-          name: data.productName,
-          description: data.productDesc,
-          price: data.productPrice,
-          category_id: cat.id,
-        }),
-      });
-      if (res.ok) {
-        setShowProductModal(false);
-        fetchProducts();
-        addNotification({ message: "Product added successfully", type: "success" });
-      } else {
-  // API utility-based handler
-  const handleAddCategory = async (data) => {
-    setLoading(true);
-    try {
       await addCategory(data);
       setShowCategoryModal(false);
       fetchCategoriesCallback();
@@ -139,28 +62,7 @@ function Catalogue() {
       setLoading(false);
     }
   };
-        addNotification({ message: "Failed to add product", type: "error" });
-      }
-    } catch (err) {
-      addNotification({ message: "Network error", type: "error" });
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  const handleDeleteProduct = async (id) => {
-    if (!window.confirm("Delete this item?")) return;
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_BASE}/products/${id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${getToken()}` },
-      });
-      if (res.ok) {
-        fetchProducts();
-        addNotification({ message: "Product deleted successfully", type: "success" });
-      } else {
-  // API utility-based handler
   const handleDeleteCategory = async (id) => {
     if (!window.confirm("Delete this category?")) return;
     setLoading(true);
@@ -174,10 +76,30 @@ function Catalogue() {
       setLoading(false);
     }
   };
-        addNotification({ message: "Failed to delete product", type: "error" });
-      }
+
+  const handleAddProduct = async (data) => {
+    setLoading(true);
+    try {
+      await addProduct(data, categories);
+      setShowProductModal(false);
+      fetchProductsCallback();
+      addNotification({ message: "Product added successfully", type: "success" });
     } catch (err) {
-      addNotification({ message: "Network error", type: "error" });
+      addNotification({ message: err.message || "Failed to add product", type: "error" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteProduct = async (id) => {
+    if (!window.confirm("Delete this item?")) return;
+    setLoading(true);
+    try {
+      await deleteProduct(id);
+      fetchProductsCallback();
+      addNotification({ message: "Product deleted successfully", type: "success" });
+    } catch (err) {
+      addNotification({ message: err.message || "Failed to delete product", type: "error" });
     } finally {
       setLoading(false);
     }

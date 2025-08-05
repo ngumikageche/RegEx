@@ -4,6 +4,8 @@ from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, get_jwt
 
 from app.models.user import User
+from app.models.usergroups import UserGroup
+from app.models.notification import Notification
 from database import db
 from flask_bcrypt import Bcrypt
 
@@ -43,8 +45,9 @@ def register():
         email = data.get("email")
         password = data.get("password")
         role = data.get("role", "user")
+        group_id = data.get("group_id")
 
-        current_app.logger.debug(f"Received data - username: {username}, email: {email}, role: {role}")
+        current_app.logger.debug(f"Received data - username: {username}, email: {email}, role: {role}, group_id: {group_id}")
 
         if not username or not email or not password:
             current_app.logger.warning("Missing required fields in register request")
@@ -70,6 +73,22 @@ def register():
         new_user.set_password(password)
         current_app.logger.debug(f"New user password hash: {new_user.password_hash}")
         db.session.add(new_user)
+        db.session.flush()  # Get new_user.id before commit
+
+        # Assign user to group if group_id is provided and valid
+        if group_id is not None:
+            try:
+                group_id_int = int(group_id)
+            except (ValueError, TypeError):
+                current_app.logger.warning(f"Invalid group_id provided: {group_id}")
+                return jsonify({"message": "Invalid group_id. Must be an integer."}), 400
+            group = UserGroup.query.get(group_id_int)
+            if not group:
+                current_app.logger.warning(f"UserGroup not found for group_id: {group_id}")
+                return jsonify({"message": "UserGroup not found for provided group_id."}), 400
+            group.users.append(new_user)
+            db.session.add(group)
+
         db.session.commit()
 
         current_app.logger.info(f"User registered successfully: {email}")

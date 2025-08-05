@@ -1,7 +1,51 @@
+const API_URL = process.env.REACT_APP_API_URL || process.env.VITE_API_URL;
+const getToken = () => localStorage.getItem("auth_token");
+
+// Login API utility
+
+export async function loginUser(email, password) {
+    const response = await fetch(`${API_URL}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+    });
+    const data = await response.json();
+    return { ok: response.ok, data };
+}
+// Get a single group by ID
+export async function fetchGroup(groupId) {
+    const response = await fetch(`${API_URL}/usergroups/${groupId}`, {
+        headers: { Authorization: `Bearer ${getToken()}` },
+    });
+    const data = await response.json();
+    return { ok: response.ok, data };
+}
+
+// Update a group
+export async function updateGroup(groupId, groupData) {
+    const response = await fetch(`${API_URL}/usergroups/${groupId}`, {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify(groupData),
+    });
+    const data = await response.json();
+    return { ok: response.ok, data };
+}
+
+// Get users in a group
+export async function fetchGroupUsers(groupId) {
+    const response = await fetch(`${API_URL}/usergroups/${groupId}/users`, {
+        headers: { Authorization: `Bearer ${getToken()}` },
+    });
+    const data = await response.json();
+    return { ok: response.ok, data };
+}
 // User API utility functions
 
-const API_URL = process.env.REACT_APP_API_URL || "https://api.regisamtech.co.ke";
-const getToken = () => localStorage.getItem("auth_token");
+
 
 export async function fetchUsers() {
     const response = await fetch(`${API_URL}/user/users`, {
@@ -17,7 +61,7 @@ export async function fetchUsers() {
 
 // GROUPS API
 export async function fetchGroups() {
-    const response = await fetch(`${API_URL}/usergroups/`, {
+    const response = await fetch(`${API_URL}/usergroups/all`, {
         headers: { Authorization: `Bearer ${getToken()}` },
     });
     const data = await response.json();
@@ -28,7 +72,7 @@ export async function fetchGroups() {
 }
 
 export async function addGroup(groupData) {
-    const response = await fetch(`${API_URL}/usergroups/`, {
+    const response = await fetch(`${API_URL}/usergroups/create`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -91,7 +135,7 @@ export async function addUser(userData) {
 }
 
 export async function updateUser(id, updatedData) {
-    const response = await fetch(`${API_URL}/user/${id}`, {
+    const response = await fetch(`${API_URL}/user/users/${id}`, {
         method: "PUT",
         headers: {
             "Content-Type": "application/json",
@@ -103,10 +147,8 @@ export async function updateUser(id, updatedData) {
     return { ok: response.ok, data };
 }
 
-// ...existing code...
-
 export async function changePassword(userId, passwordData) {
-    const response = await fetch(`${API_URL}/users/${userId}/change-password`, {
+    const response = await fetch(`${API_URL}/user/users/${userId}/change-password`, {
         method: "PUT",
         headers: {
             "Content-Type": "application/json",

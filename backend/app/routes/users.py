@@ -1,3 +1,4 @@
+
 # app/routes/user.py
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
@@ -105,26 +106,26 @@ def update_user(user_id):
     return jsonify({"message": "User updated successfully"}), 200
 
 # ----------------------------
-# CHANGE PASSWORD (User Only)
+# CHANGE PASSWORD FOR ANY USER (Admin Only)
 # ----------------------------
-@user_bp.route("/users/change-password", methods=["PUT"])
+@user_bp.route("/users/<int:user_id>/change-password", methods=["PUT"])
 @jwt_required()
-def change_password():
+def admin_change_user_password(user_id):
     current_user_id = get_jwt_identity()
-    user = User.query.get(current_user_id)
+    current_user = User.query.get(current_user_id)
 
+    if not current_user or current_user.role != "admin":
+        return jsonify({"error": "Unauthorized. Only admins can change user passwords."}), 403
+
+    user = User.query.get(user_id)
     if not user:
         return jsonify({"error": "User not found"}), 404
 
     data = request.json
-    old_password = data.get("old_password")
     new_password = data.get("new_password")
 
-    if not old_password or not new_password:
-        return jsonify({"error": "Old password and new password are required"}), 400
-
-    if not user.check_password(old_password):
-        return jsonify({"error": "Old password is incorrect"}), 400
+    if not new_password:
+        return jsonify({"error": "New password is required"}), 400
 
     if len(new_password) < 6:
         return jsonify({"error": "New password must be at least 6 characters long"}), 400

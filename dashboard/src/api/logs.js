@@ -1,8 +1,8 @@
-// Visit API utility functions
+    // Visit API utility functions
 // Uses: fetchVisits, createVisit, updateVisit, deleteVisit
 // API URL can be replaced with environment variable if needed
 
-const API_URL = process.env.REACT_APP_API_URL || "https://api.regisamtech.co.ke/visit/";
+const API_URL = process.env.REACT_APP_API_URL || process.env.VITE_API_URL;
 
 export async function fetchVisits(token, { user, startDate, endDate, userIdFilter, doctorName } = {}) {
     let url = API_URL;
