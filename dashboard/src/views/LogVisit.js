@@ -14,6 +14,8 @@ import { UserContext } from "../context/UserContext";
 import Datetime from "react-datetime";
 import moment from "moment";
 
+const API_BASE = process.env.REACT_APP_API_URL || process.env.VITE_API_URL || "http://localhost:8000";
+
 function LogVisit() {
   const { user, fetchUser } = useContext(UserContext);
   const navigate = useNavigate();
@@ -100,7 +102,7 @@ function LogVisit() {
     console.log("Token:", token);
 
     try {
-      const response = await fetch("https://api.regisamtech.co.ke/visit/", {
+      const response = await fetch(`${API_BASE}/visit/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

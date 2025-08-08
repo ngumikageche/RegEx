@@ -14,6 +14,8 @@ import {
 import { UserContext } from "../context/UserContext";
 import defaultAvatar from "../assets/img/default-avatar.png";
 
+const API_BASE = process.env.REACT_APP_API_URL || process.env.VITE_API_URL || "http://localhost:8000";
+
 function MyProfile() {
   const { user, fetchUser } = useContext(UserContext);
   const navigate = useNavigate();
@@ -99,7 +101,7 @@ function MyProfile() {
     };
 
     try {
-      const response = await fetch("https://api.regisamtech.co.ke/user/me", {
+      const response = await fetch(`${API_BASE}/user/me`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -144,7 +146,7 @@ function MyProfile() {
 
     try {
       console.log("Sending password change request:", passwordData);
-      const response = await fetch("https://api.regisamtech.co.ke/user/users/change-password", {
+      const response = await fetch(`${API_BASE}/user/users/change-password`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

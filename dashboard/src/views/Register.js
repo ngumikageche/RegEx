@@ -4,6 +4,8 @@ import { Button, Card, Form, Container, Row, Col, Spinner } from "react-bootstra
 import { UserContext } from "../context/UserContext";
 import { NotificationContext } from "../context/NotificationContext";
 
+const API_BASE = process.env.REACT_APP_API_URL || process.env.VITE_API_URL || "http://localhost:8000";
+
 const Register = () => {
   const { user, fetchUser, setUser } = useContext(UserContext);
   const { addNotification } = useContext(NotificationContext);
@@ -68,7 +70,7 @@ const Register = () => {
     };
 
     try {
-      const response = await fetch("https://api.regisamtech.co.ke/auth/register", {
+      const response = await fetch(`${API_BASE}/auth/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

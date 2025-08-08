@@ -11,6 +11,9 @@ import {
 } from "react-bootstrap";
 import { useNotification } from "../context/NotificationContext";
 
+// Use environment variable for API base URL
+const API_BASE = process.env.REACT_APP_API_URL || process.env.VITE_API_URL || "http://localhost:8000";
+
 function Notifications() {
   const { addNotification, fetchUnreadNotifications } = useNotification();
   const navigate = useNavigate();
@@ -31,7 +34,7 @@ function Notifications() {
   const fetchNotifications = async () => {
     setLoading(true);
     try {
-      const response = await fetch("https://api.regisamtech.co.ke/notification/", {
+      const response = await fetch(`${API_BASE}/notification/`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -55,7 +58,7 @@ function Notifications() {
 
   const handleMarkAsRead = async (notificationId) => {
     try {
-      const response = await fetch(`https://api.regisamtech.co.ke/notification/${notificationId}/read`, {
+      const response = await fetch(`${API_BASE}/notification/${notificationId}/read`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -86,7 +89,7 @@ function Notifications() {
     }
 
     try {
-      const response = await fetch(`https://api.regisamtech.co.ke/notification/${notificationId}`, {
+      const response = await fetch(`${API_BASE}/notification/${notificationId}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
