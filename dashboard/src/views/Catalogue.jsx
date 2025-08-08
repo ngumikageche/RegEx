@@ -13,11 +13,19 @@ import {
   fetchProductImages,
 } from "../api/catalogue";
 import { debounce } from "lodash";
+// import "./Catalogue.css";
+import noImagePlaceholder from "../assets/img/No-Image-Placeholder.svg.png";
 
 function Catalogue() {
-  const [categories, setCategories] = useState([]);
-  const [products, setProducts] = useState([]);
-  const [productImages, setProductImages] = useState({}); // { [productId]: imageUrl }
+  const [categories, setCategories] = useState(() => {
+    const cached = sessionStorage.getItem("categories");
+    return cached ? JSON.parse(cached) : [];
+  });
+  const [products, setProducts] = useState(() => {
+    const cached = sessionStorage.getItem("products");
+    return cached ? JSON.parse(cached) : [];
+  });
+  const [productImages, setProductImages] = useState(() => JSON.parse(localStorage.getItem("productImages") || "{}"));
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showProductModal, setShowProductModal] = useState(false);
   const [showProductViewModal, setShowProductViewModal] = useState(false);
@@ -27,9 +35,16 @@ function Catalogue() {
   const [loadingCategories, setLoadingCategories] = useState(false);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [loadingAction, setLoadingAction] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [productImageFile, setProductImageFile] = useState(null);
+  // For Product Images tab file preview modal
+  const [uploadPreviewFile, setUploadPreviewFile] = useState(null);
+  const [uploadPreviewUrl, setUploadPreviewUrl] = useState(null);
+  const [showUploadPreviewModal, setShowUploadPreviewModal] = useState(false);
   const [activeTab, setActiveTab] = useState("productList");
   const { addNotification } = useContext(NotificationContext);
+
+  const FALLBACK_IMAGE = noImagePlaceholder;
 
   // Memoize addNotification to ensure stability
   const memoizedAddNotification = useMemo(() => addNotification, [addNotification]);
@@ -39,15 +54,20 @@ function Catalogue() {
       setLoadingCategories(true);
       try {
         const data = await fetchCategories();
-        setCategories(data.categories || []);
+        const newCategories = data?.categories ?? [];
+        // Only update if changed
+        if (JSON.stringify(newCategories) !== JSON.stringify(categories)) {
+          setCategories(newCategories);
+          sessionStorage.setItem("categories", JSON.stringify(newCategories));
+        }
       } catch (err) {
         const message = err.message.includes("401") ? "Please log in to fetch categories" : err.message || "Network error";
         memoizedAddNotification({ message, type: "error" });
       } finally {
         setLoadingCategories(false);
       }
-    }, 500), // Increased debounce delay
-    [memoizedAddNotification]
+    }, 500),
+    [memoizedAddNotification, categories]
   );
 
   const fetchProductsCallback = useCallback(
@@ -55,34 +75,38 @@ function Catalogue() {
       setLoadingProducts(true);
       try {
         const data = await fetchProducts();
-        const prods = data.products || [];
-        const imagesMap = { ...productImages }; // Preserve existing images
-        await Promise.all(
-          prods.map(async (prod) => {
-            if (!imagesMap[prod.id]) { // Skip if image already cached
-              try {
-                const imgRes = await fetchProductImages(prod.id);
-                if (imgRes.images && imgRes.images.length > 0) {
-                  imagesMap[prod.id] = imgRes.images[0].url;
+        const prods = data?.products ?? [];
+        // Only update if changed
+        if (JSON.stringify(prods) !== JSON.stringify(products)) {
+          const imagesMap = { ...productImages };
+          await Promise.all(
+            prods.map(async (prod) => {
+              if (!imagesMap[prod.id]) {
+                try {
+                  const imgRes = await fetchProductImages(prod.id);
+                  if (imgRes?.images?.length > 0) {
+                    imagesMap[prod.id] = imgRes.images[0].url;
+                  }
+                } catch (e) {
+                  memoizedAddNotification({ message: `Failed to load image for product ${prod.name}`, type: "error" });
                 }
-              } catch (e) {
-                memoizedAddNotification({ message: `Failed to load image for product ${prod.name}`, type: "error" });
               }
-            }
-          })
-        );
-        React.startTransition(() => {
-          setProducts(prods);
-          setProductImages(imagesMap);
-        });
+            })
+          );
+          React.startTransition(() => {
+            setProducts(prods);
+            setProductImages(imagesMap);
+          });
+          sessionStorage.setItem("products", JSON.stringify(prods));
+        }
       } catch (err) {
         const message = err.message.includes("401") ? "Please log in to fetch products" : err.message || "Network error";
         memoizedAddNotification({ message, type: "error" });
       } finally {
         setLoadingProducts(false);
       }
-    }, 50000),
-    [memoizedAddNotification, productImages]
+    }, 500),
+    [memoizedAddNotification, productImages, products]
   );
 
   useEffect(() => {
@@ -94,14 +118,29 @@ function Catalogue() {
     };
   }, [fetchCategoriesCallback, fetchProductsCallback]);
 
+  useEffect(() => {
+    localStorage.setItem("productImages", JSON.stringify(productImages));
+  }, [productImages]);
+
+  // Cleanup object URL when it changes or component unmounts
+  useEffect(() => {
+    return () => {
+      if (uploadPreviewUrl) {
+        URL.revokeObjectURL(uploadPreviewUrl);
+      }
+    };
+  }, [uploadPreviewUrl]);
+
   const handleAddCategory = async (data) => {
     setLoadingAction(true);
     try {
       const newCategory = await addCategory(data);
       setShowCategoryModal(false);
       categoryForm.reset();
-      // Optimistic update
-      setCategories((prev) => [...prev, { id: newCategory.id, name: data.categoryName, description: data.categoryDesc, status: "Active" }]);
+      setCategories((prev) => [
+        ...prev,
+        { id: newCategory.id, name: data.categoryName, description: data.categoryDesc, status: "Active" },
+      ]);
       memoizedAddNotification({ message: "Category added successfully", type: "success" });
     } catch (err) {
       const message = err.message.includes("401") ? "Please log in to add a category" : err.message || "Failed to add category";
@@ -116,12 +155,12 @@ function Catalogue() {
     setLoadingAction(true);
     try {
       await deleteCategory(id);
-      setCategories((prev) => prev.filter((cat) => cat.id !== id)); // Optimistic update
+      setCategories((prev) => prev.filter((cat) => cat.id !== id));
       memoizedAddNotification({ message: "Category deleted successfully", type: "success" });
     } catch (err) {
       const message = err.message.includes("401") ? "Please log in to delete a category" : err.message || "Failed to delete category";
       memoizedAddNotification({ message, type: "error" });
-      fetchCategoriesCallback(); // Fallback to refetch if delete fails
+      fetchCategoriesCallback();
     } finally {
       setLoadingAction(false);
     }
@@ -132,6 +171,15 @@ function Catalogue() {
     try {
       const productRes = await addProduct(data);
       const productId = productRes?.id || productRes?.product?.id;
+      let imageUrl = null;
+      if (productImageFile) {
+        const imageRes = await uploadProductImage({
+          file: productImageFile,
+          name: data.productName,
+          product_id: productId,
+        });
+        imageUrl = imageRes?.url;
+      }
       const newProduct = {
         id: productId,
         name: data.productName,
@@ -140,23 +188,9 @@ function Catalogue() {
         category_id: data.productCategory,
         status: "Active",
       };
-      let imageUrl = null;
-      if (productImageFile && productId) {
-        try {
-          const imageRes = await uploadProductImage({
-            file: productImageFile,
-            name: data.productName || "product-image",
-            product_id: productId,
-          });
-          imageUrl = imageRes.url;
-        } catch (imgErr) {
-          memoizedAddNotification({ message: imgErr.message || "Product added but image upload failed", type: "error" });
-        }
-      }
       setShowProductModal(false);
       setProductImageFile(null);
       productForm.reset();
-      // Optimistic update
       React.startTransition(() => {
         setProducts((prev) => [...prev, newProduct]);
         if (imageUrl) {
@@ -165,11 +199,13 @@ function Catalogue() {
       });
       memoizedAddNotification({ message: "Product added successfully", type: "success" });
     } catch (err) {
-      const message = err.message.includes("401") ? "Please log in to add a product" :
-                      err.message.includes("403") ? "You don't have permission to add a product" :
-                      err.message || "Failed to add product";
+      const message = err.message.includes("401")
+        ? "Please log in to add a product"
+        : err.message.includes("403")
+        ? "You don't have permission to add a product"
+        : err.message || "Failed to add product";
       memoizedAddNotification({ message, type: "error" });
-      fetchProductsCallback(); // Fallback to refetch if add fails
+      fetchProductsCallback();
     } finally {
       setLoadingAction(false);
     }
@@ -180,7 +216,7 @@ function Catalogue() {
     setLoadingAction(true);
     try {
       await deleteProduct(id);
-      setProducts((prev) => prev.filter((prod) => prod.id !== id)); // Optimistic update
+      setProducts((prev) => prev.filter((prod) => prod.id !== id));
       setProductImages((prev) => {
         const newImages = { ...prev };
         delete newImages[id];
@@ -190,7 +226,7 @@ function Catalogue() {
     } catch (err) {
       const message = err.message.includes("401") ? "Please log in to delete a product" : err.message || "Failed to delete product";
       memoizedAddNotification({ message, type: "error" });
-      fetchProductsCallback(); // Fallback to refetch if delete fails
+      fetchProductsCallback();
     } finally {
       setLoadingAction(false);
     }
@@ -209,11 +245,9 @@ function Catalogue() {
   const categoryForm = useForm();
   const productForm = useForm();
 
-  // Calculate accurate counts
   const totalProducts = products.length;
-  const currentUsedProducts = products.filter(prod => prod.status === "Active").length;
+  const currentUsedProducts = products.filter((prod) => prod.status === "Active").length;
 
-  // Memoized table components to prevent unnecessary re-renders
   const ProductTable = React.memo(({ products, productImages, categories, handleDeleteProduct, handleViewProduct }) => (
     <Table striped bordered hover>
       <thead>
@@ -232,30 +266,46 @@ function Catalogue() {
           <tr key={prod.id}>
             <td>
               <img
-                src={productImages[prod.id] || prod.photo || ""}
+                src={productImages[prod.id] || prod.photo || FALLBACK_IMAGE}
                 alt={`Product ${prod.name}`}
-                style={{ width: "40px", height: "40px", borderRadius: "50%" }}
-                onError={(e) => { e.target.onerror = null; e.target.src = ""; }}
+                className="product-image"
+                style={{ width: 64, height: 64, objectFit: "cover", borderRadius: 6 }}
+                onError={(e) => {
+                  const img = e.currentTarget;
+                  if (img.src !== FALLBACK_IMAGE) {
+                    img.onerror = null;
+                    img.src = FALLBACK_IMAGE;
+                  }
+                }}
               />
             </td>
             <td>{prod.name}</td>
             <td>${prod.price || "0.00"}</td>
             <td>{categories.find((c) => c.id === prod.category_id)?.name || "Unknown"}</td>
             <td>
-              <span style={{ backgroundColor: prod.status === "Active" ? "#d4edda" : "#f8d7da", padding: "5px 10px", borderRadius: "10px", color: prod.status === "Active" ? "#155724" : "#721c24" }}>
+              <span className={prod.status === "Active" ? "status-active" : "status-inactive"}>
                 {prod.status || "Active"}
               </span>
             </td>
             <td>
-              <i className="fas fa-pen" aria-label={`Edit product ${prod.name}`} style={{ cursor: "pointer" }}></i>
               <i
                 className="fas fa-trash"
                 aria-label={`Delete product ${prod.name}`}
+                title="Delete product"
                 onClick={() => handleDeleteProduct(prod.id)}
-                style={{ cursor: "pointer", marginLeft: "10px" }}
+                style={{ cursor: "pointer" }}
               ></i>
             </td>
-            <td><Button variant="primary" size="sm" onClick={() => handleViewProduct(prod)}>View</Button></td>
+            <td>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => handleViewProduct(prod)}
+                aria-label={`View product ${prod.name}`}
+              >
+                View
+              </Button>
+            </td>
           </tr>
         ))}
       </tbody>
@@ -279,29 +329,45 @@ function Catalogue() {
           <tr key={cat.id}>
             <td>
               <img
-                src={cat.photo || ""}
+                src={cat.photo || FALLBACK_IMAGE}
                 alt={`Category ${cat.name}`}
-                style={{ width: "40px", height: "40px", borderRadius: "50%" }}
-                onError={(e) => { e.target.onerror = null; e.target.src = ""; }}
+                className="category-image"
+                style={{ width: 64, height: 64, objectFit: "cover", borderRadius: 6 }}
+                onError={(e) => {
+                  const img = e.currentTarget;
+                  if (img.src !== FALLBACK_IMAGE) {
+                    img.onerror = null;
+                    img.src = FALLBACK_IMAGE;
+                  }
+                }}
               />
             </td>
             <td>{cat.name}</td>
             <td>{cat.description || "N/A"}</td>
             <td>
-              <span style={{ backgroundColor: cat.status === "Active" ? "#d4edda" : "#f8d7da", padding: "5px 10px", borderRadius: "10px", color: cat.status === "Active" ? "#155724" : "#721c24" }}>
+              <span className={cat.status === "Active" ? "status-active" : "status-inactive"}>
                 {cat.status || "Active"}
               </span>
             </td>
             <td>
-              <i className="fas fa-pen" aria-label={`Edit category ${cat.name}`} style={{ cursor: "pointer" }}></i>
               <i
                 className="fas fa-trash"
                 aria-label={`Delete category ${cat.name}`}
+                title="Delete category"
                 onClick={() => handleDeleteCategory(cat.id)}
-                style={{ cursor: "pointer", marginLeft: "10px" }}
+                style={{ cursor: "pointer" }}
               ></i>
             </td>
-            <td><Button variant="primary" size="sm" onClick={() => handleViewCategory(cat)}>View</Button></td>
+            <td>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => handleViewCategory(cat)}
+                aria-label={`View category ${cat.name}`}
+              >
+                View
+              </Button>
+            </td>
           </tr>
         ))}
       </tbody>
@@ -313,13 +379,30 @@ function Catalogue() {
       <div className="container-fluid p-4">
         <Nav variant="tabs" activeKey={activeTab} onSelect={(k) => setActiveTab(k)} className="mb-4">
           <Nav.Item>
-            <Nav.Link eventKey="productList" active={activeTab === "productList"} style={{ color: activeTab === "productList" ? "#6f42c1" : "#000" }}>
+            <Nav.Link
+              eventKey="manageCategories"
+              active={activeTab === "manageCategories"}
+              style={{ color: activeTab === "manageCategories" ? "#6f42c1" : "#000" }}
+            >
+              Manage Categories
+            </Nav.Link>
+          </Nav.Item>
+          <Nav.Item>
+            <Nav.Link
+              eventKey="productList"
+              active={activeTab === "productList"}
+              style={{ color: activeTab === "productList" ? "#6f42c1" : "#000" }}
+            >
               Product List
             </Nav.Link>
           </Nav.Item>
           <Nav.Item>
-            <Nav.Link eventKey="manageCategories" active={activeTab === "manageCategories"} style={{ color: activeTab === "manageCategories" ? "#6f42c1" : "#000" }}>
-              Manage Categories
+            <Nav.Link
+              eventKey="productImages"
+              active={activeTab === "productImages"}
+              style={{ color: activeTab === "productImages" ? "#6f42c1" : "#000" }}
+            >
+              Product Images
             </Nav.Link>
           </Nav.Item>
         </Nav>
@@ -333,96 +416,154 @@ function Catalogue() {
         )}
 
         {activeTab === "productList" && (
-          <div style={{ backgroundColor: "white", padding: "20px", borderRadius: "5px" }}>
+          <div className="container">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
               <h3>Products</h3>
               <div>
-                <Button variant="purple" style={{ marginRight: "10px" }} onClick={() => setShowProductModal(true)}>
+                <Button
+                  variant="purple"
+                  className="btn-purple"
+                  style={{ marginRight: "10px" }}
+                  onClick={() => setShowProductModal(true)}
+                  aria-label="Add new product"
+                >
                   Add new
                 </Button>
-                <Button variant="secondary">Import products</Button>
-                <Button variant="secondary" style={{ marginLeft: "10px" }}>Export products (Excel)</Button>
-                <Button variant="purple" style={{ marginLeft: "10px" }}><i className="fas fa-filter" aria-label="Filter products"></i></Button>
+                <Button variant="secondary" aria-label="Import products">
+                  Import products
+                </Button>
+                <Button
+                  variant="secondary"
+                  style={{ marginLeft: "10px" }}
+                  aria-label="Export products to Excel"
+                >
+                  Export products (Excel)
+                </Button>
+                <Button
+                  variant="purple"
+                  className="btn-purple"
+                  style={{ marginLeft: "10px" }}
+                  aria-label="Filter products"
+                >
+                  <i className="fas fa-filter"></i>
+                </Button>
               </div>
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "10px" }}>
               <span>Total products: {totalProducts} | Current used: {currentUsedProducts}</span>
             </div>
-            {loadingProducts ? (
-              <Table striped bordered hover>
-                <thead>
-                  <tr>
-                    <th>Photo</th>
-                    <th>Product name</th>
-                    <th>Price</th>
-                    <th>Category</th>
-                    <th>Status</th>
-                    <th>Operation</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Array(5).fill().map((_, index) => (
-                    <tr key={index}>
-                      <td><Placeholder as="div" animation="glow"><Placeholder xs={4} /></Placeholder></td>
-                      <td><Placeholder as="div" animation="glow"><Placeholder xs={6} /></Placeholder></td>
-                      <td><Placeholder as="div" animation="glow"><Placeholder xs={3} /></Placeholder></td>
-                      <td><Placeholder as="div" animation="glow"><Placeholder xs={5} /></Placeholder></td>
-                      <td><Placeholder as="div" animation="glow"><Placeholder xs={4} /></Placeholder></td>
-                      <td><Placeholder as="div" animation="glow"><Placeholder xs={2} /></Placeholder></td>
-                      <td><Placeholder as="div" animation="glow"><Placeholder xs={2} /></Placeholder></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
-            ) : products.length === 0 ? (
-              <Table striped bordered hover>
-                <thead>
-                  <tr>
-                    <th>Photo</th>
-                    <th>Product name</th>
-                    <th>Price</th>
-                    <th>Category</th>
-                    <th>Status</th>
-                    <th>Operation</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td colSpan="7" className="text-center">No products available.</td>
-                  </tr>
-                </tbody>
-              </Table>
-            ) : (
-              <ProductTable
-                products={products}
-                productImages={productImages}
-                categories={categories}
-                handleDeleteProduct={handleDeleteProduct}
-                handleViewProduct={handleViewProduct}
-              />
-            )}
+        {/* Show loading animation only if loading and no products yet, else show table or empty message */}
+        {loadingProducts && products.length === 0 ? (
+          <Table striped bordered hover>
+            <thead>
+              <tr>
+                <th>Photo</th>
+                <th>Product name</th>
+                <th>Price</th>
+                <th>Category</th>
+                <th>Status</th>
+                <th>Operation</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {Array(5).fill().map((_, index) => (
+                <tr key={index}>
+                  <td>
+                    <Placeholder as="div" animation="glow">
+                      <Placeholder xs={4} />
+                    </Placeholder>
+                  </td>
+                  <td>
+                    <Placeholder as="div" animation="glow">
+                      <Placeholder xs={6} />
+                    </Placeholder>
+                  </td>
+                  <td>
+                    <Placeholder as="div" animation="glow">
+                      <Placeholder xs={3} />
+                    </Placeholder>
+                  </td>
+                  <td>
+                    <Placeholder as="div" animation="glow">
+                      <Placeholder xs={5} />
+                    </Placeholder>
+                  </td>
+                  <td>
+                    <Placeholder as="div" animation="glow">
+                      <Placeholder xs={4} />
+                    </Placeholder>
+                  </td>
+                  <td>
+                    <Placeholder as="div" animation="glow">
+                      <Placeholder xs={2} />
+                    </Placeholder>
+                  </td>
+                  <td>
+                    <Placeholder as="div" animation="glow">
+                      <Placeholder xs={2} />
+                    </Placeholder>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        ) : products.length === 0 ? (
+          <div className="text-center py-4">No items available.</div>
+        ) : (
+          <ProductTable
+            products={products}
+            productImages={productImages}
+            categories={categories}
+            handleDeleteProduct={handleDeleteProduct}
+            handleViewProduct={handleViewProduct}
+          />
+        )}
           </div>
         )}
 
         {activeTab === "manageCategories" && (
-          <div style={{ backgroundColor: "white", padding: "20px", borderRadius: "5px" }}>
+          <div className="container">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
               <h3>Categories</h3>
               <div>
-                <Button variant="purple" style={{ marginRight: "10px" }} onClick={() => setShowCategoryModal(true)}>
+                <Button
+                  variant="purple"
+                  className="btn-purple"
+                  style={{ marginRight: "10px" }}
+                  onClick={() => setShowCategoryModal(true)}
+                  aria-label="Add new category"
+                >
                   Add new
                 </Button>
-                <Button variant="secondary">Import categories</Button>
-                <Button variant="secondary" style={{ marginLeft: "10px" }}>Export categories (Excel)</Button>
-                <Button variant="purple" style={{ marginLeft: "10px" }}><i className="fas fa-filter" aria-label="Filter categories"></i></Button>
+                <Button variant="secondary" aria-label="Import categories">
+                  Import categories
+                </Button>
+                <Button
+                  variant="secondary"
+                  style={{ marginLeft: "10px" }}
+                  aria-label="Export categories to Excel"
+                >
+                  Export categories (Excel)
+                </Button>
+                <Button
+                  variant="purple"
+                  className="btn-purple"
+                  style={{ marginLeft: "10px" }}
+                  aria-label="Filter categories"
+                >
+                  <i className="fas fa-filter"></i>
+                </Button>
               </div>
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "10px" }}>
-              <span>Total categories: {categories.length} | Current used: {categories.filter(c => c.status === "Active").length}</span>
+              <span>
+                Total categories: {categories.length} | Current used:{" "}
+                {categories.filter((c) => c.status === "Active").length}
+              </span>
             </div>
-            {loadingCategories ? (
+            {/* Show loading animation only if loading and no categories yet, else show table or empty message */}
+            {loadingCategories && categories.length === 0 ? (
               <Table striped bordered hover>
                 <thead>
                   <tr>
@@ -437,34 +578,42 @@ function Catalogue() {
                 <tbody>
                   {Array(5).fill().map((_, index) => (
                     <tr key={index}>
-                      <td><Placeholder as="div" animation="glow"><Placeholder xs={4} /></Placeholder></td>
-                      <td><Placeholder as="div" animation="glow"><Placeholder xs={6} /></Placeholder></td>
-                      <td><Placeholder as="div" animation="glow"><Placeholder xs={5} /></Placeholder></td>
-                      <td><Placeholder as="div" animation="glow"><Placeholder xs={4} /></Placeholder></td>
-                      <td><Placeholder as="div" animation="glow"><Placeholder xs={2} /></Placeholder></td>
-                      <td><Placeholder as="div" animation="glow"><Placeholder xs={2} /></Placeholder></td>
+                      <td>
+                        <Placeholder as="div" animation="glow">
+                          <Placeholder xs={4} />
+                        </Placeholder>
+                      </td>
+                      <td>
+                        <Placeholder as="div" animation="glow">
+                          <Placeholder xs={6} />
+                        </Placeholder>
+                      </td>
+                      <td>
+                        <Placeholder as="div" animation="glow">
+                          <Placeholder xs={5} />
+                        </Placeholder>
+                      </td>
+                      <td>
+                        <Placeholder as="div" animation="glow">
+                          <Placeholder xs={4} />
+                        </Placeholder>
+                      </td>
+                      <td>
+                        <Placeholder as="div" animation="glow">
+                          <Placeholder xs={2} />
+                        </Placeholder>
+                      </td>
+                      <td>
+                        <Placeholder as="div" animation="glow">
+                          <Placeholder xs={2} />
+                        </Placeholder>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </Table>
             ) : categories.length === 0 ? (
-              <Table striped bordered hover>
-                <thead>
-                  <tr>
-                    <th>Photo</th>
-                    <th>Name</th>
-                    <th>Description</th>
-                    <th>Status</th>
-                    <th>Operation</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td colSpan="6" className="text-center">No categories available.</td>
-                  </tr>
-                </tbody>
-              </Table>
+              <div className="text-center py-4">No items available.</div>
             ) : (
               <CategoryTable
                 categories={categories}
@@ -472,6 +621,144 @@ function Catalogue() {
                 handleViewCategory={handleViewCategory}
               />
             )}
+          </div>
+        )}
+
+        {activeTab === "productImages" && (
+          <div className="container">
+            <h3>Upload Product Image</h3>
+            <Form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const form = e.target;
+                const productId = form.productId.value;
+                const file = form.productImage.files[0];
+                if (!productId) {
+                  memoizedAddNotification({ message: "Please select a product", type: "error" });
+                  return;
+                }
+                if (!file) {
+                  memoizedAddNotification({ message: "Please select an image file", type: "error" });
+                  return;
+                }
+                if (!file.type.startsWith("image/")) {
+                  memoizedAddNotification({ message: "Please upload a valid image file", type: "error" });
+                  return;
+                }
+                if (file.size > 5 * 1024 * 1024) {
+                  memoizedAddNotification({ message: "Image size must be less than 5MB", type: "error" });
+                  return;
+                }
+                setUploadingImage(true);
+                try {
+                  const imageRes = await uploadProductImage({
+                    file,
+                    name: products.find((p) => p.id == productId)?.name || "product-image",
+                    product_id: productId,
+                  });
+                  setProductImages((prev) => ({ ...prev, [productId]: imageRes?.url }));
+                  memoizedAddNotification({ message: "Image uploaded successfully", type: "success" });
+                  // Reset file input and preview state
+                  form.productImage.value = null;
+                  if (uploadPreviewUrl) URL.revokeObjectURL(uploadPreviewUrl);
+                  setUploadPreviewUrl(null);
+                  setUploadPreviewFile(null);
+                } catch (err) {
+                  memoizedAddNotification({ message: err.message || "Failed to upload image", type: "error" });
+                } finally {
+                  setUploadingImage(false);
+                }
+              }}
+            >
+              <Form.Group className="mb-3" controlId="productId">
+                <Form.Label>Select Product</Form.Label>
+                <Form.Control as="select" name="productId" required>
+                  <option value="">Select Product</option>
+                  {products.map((prod) => (
+                    <option key={prod.id} value={prod.id}>
+                      {prod.name}
+                    </option>
+                  ))}
+                </Form.Control>
+              </Form.Group>
+              <Form.Group className="mb-3" controlId="productImage">
+                <Form.Label>Image</Form.Label>
+                <div className="d-flex align-items-center gap-2">
+                  <Form.Control
+                    type="file"
+                    name="productImage"
+                    accept="image/*"
+                    required
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setUploadPreviewFile(file);
+                        // Revoke previous URL if exists before creating a new one
+                        if (uploadPreviewUrl) {
+                          URL.revokeObjectURL(uploadPreviewUrl);
+                        }
+                        const url = URL.createObjectURL(file);
+                        setUploadPreviewUrl(url);
+                      } else {
+                        setUploadPreviewFile(null);
+                        if (uploadPreviewUrl) {
+                          URL.revokeObjectURL(uploadPreviewUrl);
+                        }
+                        setUploadPreviewUrl(null);
+                      }
+                    }}
+                  />
+                  {uploadPreviewFile && (
+                    <Button
+                      variant="outline-primary"
+                      size="sm"
+                      onClick={() => setShowUploadPreviewModal(true)}
+                    >
+                      Preview: {uploadPreviewFile.name}
+                    </Button>
+                  )}
+                </div>
+              </Form.Group>
+              <Button variant="success" type="submit" disabled={uploadingImage}>
+                {uploadingImage ? <Spinner animation="border" size="sm" /> : "Upload Image"}
+              </Button>
+            </Form>
+
+            <Modal
+              show={showUploadPreviewModal}
+              onHide={() => setShowUploadPreviewModal(false)}
+              centered
+            >
+              <Modal.Header closeButton>
+                <Modal.Title>Image Preview</Modal.Title>
+              </Modal.Header>
+              <Modal.Body className="text-center">
+                {uploadPreviewUrl ? (
+                  <img
+                    src={uploadPreviewUrl}
+                    alt={uploadPreviewFile?.name || "preview"}
+                    style={{ maxWidth: "100%", maxHeight: 400, objectFit: "contain", borderRadius: 8 }}
+                    onError={(e) => {
+                      const img = e.currentTarget;
+                      if (img.src !== FALLBACK_IMAGE) {
+                        img.onerror = null;
+                        img.src = FALLBACK_IMAGE;
+                      }
+                    }}
+                  />
+                ) : (
+                  <div>No preview available.</div>
+                )}
+              </Modal.Body>
+              <Modal.Footer>
+                <Button
+                  variant="secondary"
+                  onClick={() => setShowUploadPreviewModal(false)}
+                >
+                  Close
+                </Button>
+              </Modal.Footer>
+            </Modal>
           </div>
         )}
 
@@ -521,7 +808,7 @@ function Catalogue() {
                     setShowCategoryModal(false);
                     categoryForm.reset();
                   }}
-                  className="btn-fill flex-1"
+                  className="btn-fill"
                   disabled={loadingAction}
                 >
                   Cancel
@@ -529,7 +816,7 @@ function Catalogue() {
                 <Button
                   variant="primary"
                   type="submit"
-                  className="btn-fill flex-1"
+                  className="btn-fill"
                   disabled={loadingAction}
                 >
                   {loadingAction ? <Spinner animation="border" size="sm" /> : "Add Category"}
@@ -616,24 +903,11 @@ function Catalogue() {
                 </Form.Control.Feedback>
               </Form.Group>
               <Form.Group className="mb-3" controlId="productImage">
-                <Form.Label>Image</Form.Label>
+                <Form.Label>Product Image</Form.Label>
                 <Form.Control
                   type="file"
                   accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files[0];
-                    if (file) {
-                      if (!file.type.startsWith("image/")) {
-                        memoizedAddNotification({ message: "Please upload a valid image file", type: "error" });
-                        return;
-                      }
-                      if (file.size > 5 * 1024 * 1024) {
-                        memoizedAddNotification({ message: "Image size must be less than 5MB", type: "error" });
-                        return;
-                      }
-                      setProductImageFile(file);
-                    }
-                  }}
+                  onChange={(e) => setProductImageFile(e.target.files[0])}
                 />
               </Form.Group>
               <div className="d-flex gap-2">
@@ -644,7 +918,7 @@ function Catalogue() {
                     productForm.reset();
                     setProductImageFile(null);
                   }}
-                  className="btn-fill flex-1"
+                  className="btn-fill"
                   disabled={loadingAction}
                 >
                   Cancel
@@ -652,7 +926,7 @@ function Catalogue() {
                 <Button
                   variant="success"
                   type="submit"
-                  className="btn-fill flex-1"
+                  className="btn-fill"
                   disabled={loadingAction}
                 >
                   {loadingAction ? <Spinner animation="border" size="sm" /> : "Add Item"}
@@ -674,16 +948,32 @@ function Catalogue() {
           <Modal.Body>
             {selectedProduct && (
               <>
-                <p><strong>Name:</strong> {selectedProduct.name}</p>
-                <p><strong>Price:</strong> ${selectedProduct.price || "0.00"}</p>
-                <p><strong>Category:</strong> {categories.find((c) => c.id === selectedProduct.category_id)?.name || "Unknown"}</p>
-                <p><strong>Status:</strong> {selectedProduct.status || "Active"}</p>
+                <p>
+                  <strong>Name:</strong> {selectedProduct.name}
+                </p>
+                <p>
+                  <strong>Price:</strong> ${selectedProduct.price || "0.00"}
+                </p>
+                <p>
+                  <strong>Category:</strong>{" "}
+                  {categories.find((c) => c.id === selectedProduct.category_id)?.name || "Unknown"}
+                </p>
+                <p>
+                  <strong>Status:</strong> {selectedProduct.status || "Active"}
+                </p>
                 {productImages[selectedProduct.id] && (
                   <img
-                    src={productImages[selectedProduct.id]}
+                    src={productImages[selectedProduct.id] || FALLBACK_IMAGE}
                     alt={`Product ${selectedProduct.name}`}
+                    className="product-image"
                     style={{ width: "100px" }}
-                    onError={(e) => { e.target.onerror = null; e.target.src = ""; }}
+                    onError={(e) => {
+                      const img = e.currentTarget;
+                      if (img.src !== FALLBACK_IMAGE) {
+                        img.onerror = null;
+                        img.src = FALLBACK_IMAGE;
+                      }
+                    }}
                   />
                 )}
               </>
@@ -708,15 +998,28 @@ function Catalogue() {
           <Modal.Body>
             {selectedCategory && (
               <>
-                <p><strong>Name:</strong> {selectedCategory.name}</p>
-                <p><strong>Description:</strong> {selectedCategory.description || "N/A"}</p>
-                <p><strong>Status:</strong> {selectedCategory.status || "Active"}</p>
+                <p>
+                  <strong>Name:</strong> {selectedCategory.name}
+                </p>
+                <p>
+                  <strong>Description:</strong> {selectedCategory.description || "N/A"}
+                </p>
+                <p>
+                  <strong>Status:</strong> {selectedCategory.status || "Active"}
+                </p>
                 {selectedCategory.photo && (
                   <img
-                    src={selectedCategory.photo}
+                    src={selectedCategory.photo || FALLBACK_IMAGE}
                     alt={`Category ${selectedCategory.name}`}
+                    className="category-image"
                     style={{ width: "100px" }}
-                    onError={(e) => { e.target.onerror = null; e.target.src = ""; }}
+                    onError={(e) => {
+                      const img = e.currentTarget;
+                      if (img.src !== FALLBACK_IMAGE) {
+                        img.onerror = null;
+                        img.src = FALLBACK_IMAGE;
+                      }
+                    }}
                   />
                 )}
               </>
