@@ -19,6 +19,9 @@ import { useReactToPrint } from "react-to-print";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
+// Use environment variable for API base URL
+const API_BASE = process.env.REACT_APP_API_URL || process.env.VITE_API_URL || "http://localhost:8000";
+
 function VisitList() {
   const { user, fetchUser } = useContext(UserContext);
   // Use user?.avatar || defaultAvatar wherever avatar is displayed
@@ -159,7 +162,7 @@ function VisitList() {
     setError("");
 
     try {
-      let url = "https://api.regisamtech.co.ke/visit/";
+      let url = `${API_BASE}/visit/`;
       if (user.role === "admin") {
         const params = new URLSearchParams();
         if (startDate) params.append("start_date", startDate);
@@ -230,7 +233,7 @@ function VisitList() {
     };
 
     try {
-      const response = await fetch(`https://api.regisamtech.co.ke/visit/${editingVisit.id}`, {
+      const response = await fetch(`${API_BASE}/visit/${editingVisit.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -266,7 +269,7 @@ function VisitList() {
     }
 
     try {
-      const response = await fetch(`https://api.regisamtech.co.ke/visit/${visitId}`, {
+      const response = await fetch(`${API_BASE}/visit/${visitId}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",

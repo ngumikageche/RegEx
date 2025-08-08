@@ -4,6 +4,8 @@ import { Navbar, Container, Nav, Dropdown, Button } from "react-bootstrap";
 
 import routes from "routes.js";
 
+const API_BASE = process.env.REACT_APP_API_URL || process.env.VITE_API_URL || "http://localhost:8000";
+
 function Header() {
   const location = useLocation();
   const navigate = useNavigate(); // Use navigate for redirection
@@ -31,7 +33,7 @@ function Header() {
 
   const handleLogout = async () => {
     try {
-      const response = await fetch("https://api.regisamtech.co.ke/logout", {
+      const response = await fetch(`${API_BASE}/logout`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

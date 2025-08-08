@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Table, Spinner } from "react-bootstrap";
 
+const API_BASE = process.env.REACT_APP_API_URL || process.env.VITE_API_URL || "http://localhost:8000";
+
 function ReportList({ user, token, role, onEdit }) {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -17,7 +19,7 @@ function ReportList({ user, token, role, onEdit }) {
           headers["X-User-Role"] = role; // Add role header for admin
         }
 
-        const response = await fetch("https://api.regisamtech.co.ke/report/", { // Adjust endpoint as needed
+        const response = await fetch(`${API_BASE}/report/`, {
           method: "GET",
           headers,
         });

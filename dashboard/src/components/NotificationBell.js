@@ -4,6 +4,8 @@ import { NavLink } from "react-router-dom";
 import { Badge } from "react-bootstrap";
 import { UserContext } from "../context/UserContext";
 
+const API_BASE = process.env.REACT_APP_API_URL || process.env.VITE_API_URL || "http://localhost:8000";
+
 function NotificationBell({ layout }) {
   const { user, fetchUser } = useContext(UserContext);
   const token = localStorage.getItem("auth_token");
@@ -14,7 +16,7 @@ function NotificationBell({ layout }) {
 
     const fetchUnreadNotifications = async () => {
       try {
-        const response = await fetch("https://api.regisamtech.co.ke/notifications/", {
+        const response = await fetch(`${API_BASE}/notifications/`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",

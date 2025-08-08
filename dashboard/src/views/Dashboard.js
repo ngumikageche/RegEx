@@ -19,6 +19,9 @@ import {
   Spinner,
 } from "react-bootstrap";
 
+// Use environment variable for API base URL
+const API_BASE = process.env.REACT_APP_API_URL || process.env.VITE_API_URL || "http://localhost:8000";
+
 function Dashboard() {
   const { user, fetchUser } = useContext(UserContext);
   const navigate = useNavigate();
@@ -64,7 +67,7 @@ function Dashboard() {
       setLoadingVisits(true);
       setError("");
       try {
-        const response = await fetch("https://api.regisamtech.co.ke/visit/", {
+        const response = await fetch(`${API_BASE}/visit/`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -103,7 +106,7 @@ function Dashboard() {
       setLoadingAllVisits(true);
       setError("");
       try {
-        const response = await fetch("https://api.regisamtech.co.ke/report/all-visits", {
+        const response = await fetch(`${API_BASE}/report/all-visits`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -142,7 +145,7 @@ function Dashboard() {
     const fetchNotifications = async () => {
       setLoadingNotifications(true);
       try {
-        const response = await fetch("https://api.regisamtech.co.ke/notification/", {
+        const response = await fetch(`${API_BASE}/notification/`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -180,7 +183,7 @@ function Dashboard() {
     const fetchUsers = async () => {
       setLoadingUsers(true);
       try {
-        const response = await fetch("https://api.regisamtech.co.ke/user/", {
+        const response = await fetch(`${API_BASE}/user/`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",

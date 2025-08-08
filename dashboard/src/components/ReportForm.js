@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Modal, Button, Form, Alert } from "react-bootstrap";
 
+const API_BASE = process.env.REACT_APP_API_URL || process.env.VITE_API_URL || "http://localhost:8000";
+
 const ReportForm = ({ show, onHide, token, user, report, visits, onSave }) => {
   const [title, setTitle] = useState("");
   const [visitId, setVisitId] = useState("");
@@ -31,10 +33,8 @@ const ReportForm = ({ show, onHide, token, user, report, visits, onSave }) => {
       report_text: reportText,
     };
 
-    const url = report
-      ? `https://api.regisamtech.co.ke/report/${report.id}`
-      : "https://api.regisamtech.co.ke/report/";
-    const method = report ? "PUT" : "POST";
+    const url = report && report.id ? `${API_BASE}/report/${report.id}` : `${API_BASE}/report/`;
+    const method = report && report.id ? "PUT" : "POST";
 
     try {
       const response = await fetch(url, {
