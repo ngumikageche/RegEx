@@ -23,7 +23,7 @@ POST /images/
 Requires: multipart/form-data with 'file', 'name', 'color', 'product_id'
 Response: { "message": str, "image_id": int, "url": str }
 """
-@images_bp.route("/", methods=["POST"])
+@images_bp.route("/upload", methods=["POST"])
 @jwt_required()
 def upload_image():
     user_id = get_jwt_identity()
@@ -60,15 +60,15 @@ def upload_image():
             cloudinary_available = False
 
     if not cloudinary_available or not url:
-        # Save locally
+        # Save locally in static/images
         from werkzeug.utils import secure_filename
-        static_folder = os.path.join(os.path.dirname(__file__), '..', 'static', 'images')
+        static_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'static', 'images'))
         os.makedirs(static_folder, exist_ok=True)
         filename = secure_filename(file.filename)
         local_path = os.path.join(static_folder, filename)
         file.save(local_path)
-        # Generate local URL (assuming static is served at /static/images/)
-        url = f"/static/images/{filename}"
+        # Generate absolute URL for frontend access
+        url = request.host_url.rstrip('/') + f"/static/images/{filename}"
 
     image = Image(name=name, url=url, color=color, user_id=user_id, product_id=product_id)
     db.session.add(image)

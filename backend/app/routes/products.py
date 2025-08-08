@@ -48,7 +48,15 @@ def get_products():
                 "description": p.description,
                 "price": p.price,
                 "user_id": p.user_id,
-                "category_id": p.category_id
+                "category_id": p.category_id,
+                "images": [
+                    {
+                        "id": img.id,
+                        "name": img.name,
+                        "url": img.url,
+                        "color": img.color
+                    } for img in getattr(p, 'images', [])
+                ]
             } for p in products
         ]
     }), 200
@@ -66,7 +74,15 @@ def get_product(product_id):
         "description": product.description,
         "price": product.price,
         "user_id": product.user_id,
-        "category_id": product.category_id
+        "category_id": product.category_id,
+        "images": [
+            {
+                "id": img.id,
+                "name": img.name,
+                "url": img.url,
+                "color": img.color
+            } for img in getattr(product, 'images', [])
+        ]
     }), 200
 
 # Update a product

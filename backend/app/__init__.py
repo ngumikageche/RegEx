@@ -23,7 +23,7 @@ def create_app():
     app.config["JWT_TOKEN_LOCATION"] = ["headers"]
     app.config["JWT_HEADER_NAME"] = "Authorization"
     app.config["JWT_HEADER_TYPE"] = "Bearer"
-    app.config["JWT_ACCESS_TOKEN_EXPIRES"] = 900  # 15 minutes in seconds
+    app.config["JWT_ACCESS_TOKEN_EXPIRES"] = 90000  #  minutes in seconds
 
     # Define allowed origins
     allowed_origins = [
