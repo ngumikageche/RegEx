@@ -76,6 +76,7 @@ def create_app():
     from app.routes.categories import categories_bp
     from app.routes.usergroups import usergroups_bp
     from app.routes.images import images_bp
+    from app.routes.public import public_bp
 
     app.register_blueprint(user_bp, url_prefix="/user")
     app.register_blueprint(auth_bp, url_prefix="/auth")
@@ -87,6 +88,7 @@ def create_app():
     app.register_blueprint(categories_bp, url_prefix="/categories")
     app.register_blueprint(usergroups_bp, url_prefix="/usergroups")
     app.register_blueprint(images_bp, url_prefix="/images")
+    app.register_blueprint(public_bp, url_prefix="/public")
     app.logger.info("Blueprints registered successfully")
 
     # Create database tables

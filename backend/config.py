@@ -20,6 +20,9 @@ class Config:
     # Security settings
     CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "*")
     SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "True") == "True"
+    # Public API key for unauthenticated read-only endpoints
+    # Public API key (static fallback). Override in environment for production security.
+    PUBLIC_API_KEY = os.getenv("PUBLIC_API_KEY", "public-demo-key-12345")
 
 class DevelopmentConfig(Config):
     DEBUG = True
