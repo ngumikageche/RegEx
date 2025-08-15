@@ -25,33 +25,29 @@ def create_app():
     app.config["JWT_HEADER_TYPE"] = "Bearer"
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = 90000  #  minutes in seconds
 
-    # Define allowed origins
-    allowed_origins = [
-        "http://localhost:3000",
-        "https://api.nextek.co.ke",  # Add your production frontend domain here
-    ]
+    # Build allowed origins from env (CORS_ALLOWED_ORIGINS="*") or comma-separated list
+    origins_raw = app.config.get("CORS_ALLOWED_ORIGINS", "*")
+    if origins_raw.strip() == "*":
+        allowed_origins = ["*"]
+    else:
+        allowed_origins = [o.strip() for o in origins_raw.split(",") if o.strip()]
 
-    # Enable CORS with dynamic origin handling
-    CORS(app, origins=allowed_origins, supports_credentials=True, resources={r"/*": {"origins": allowed_origins}})
-    
-    @app.after_request
-    def add_cors_headers(response):
-        # Get the origin from the request
-        origin = request.headers.get("Origin")
-        app.logger.debug(f"Request Origin: {origin}")
+    supports_creds = allowed_origins != ["*"]  # Can't use credentials with wildcard in browsers
 
-        # Only set Access-Control-Allow-Origin if the origin is in the allowed list
-        if origin in allowed_origins:
-            response.headers["Access-Control-Allow-Origin"] = origin
-        else:
-            # Fallback to a default origin or handle as needed
-            response.headers["Access-Control-Allow-Origin"] = allowed_origins[0]
-
-        response.headers["Access-Control-Allow-Credentials"] = "true"
-        response.headers["Access-Control-Allow-Methods"] = "GET, POST, , PUT, DELETE, OPTIONS"
-        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With, X-User-Role"
-        app.logger.debug(f"CORS Headers Set: {response.headers}")
-        return response
+    CORS(
+        app,
+        origins=allowed_origins,
+        supports_credentials=supports_creds,
+        resources={r"/*": {"origins": allowed_origins}},
+        allow_headers=[
+            "Content-Type",
+            "Authorization",
+            "X-Requested-With",
+            "X-User-Role",
+            "X-API-Key",
+        ],
+        expose_headers=["Content-Type"],
+    )
     
     # Initialize extensions
     app.logger.info("Initializing extensions")
