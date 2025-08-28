@@ -1,5 +1,9 @@
 import React, { useState, useEffect, useCallback, useContext, useMemo } from "react";
 import { Modal, Button, Form, Spinner, Table, Nav, Placeholder } from "react-bootstrap";
+import CategoryModal from "../components/Modals/CategoryModal";
+import ProductModal from "../components/Modals/ProductModal";
+import ProductViewModal from "../components/Modals/ProductViewModal";
+import CategoryViewModal from "../components/Modals/CategoryViewModal";
 import { useForm } from "react-hook-form";
 import { NotificationContext } from "../context/NotificationContext";
 import {
@@ -763,274 +767,49 @@ function Catalogue() {
         )}
 
         {/* Category Modal */}
-        <Modal
+        <CategoryModal
           show={showCategoryModal}
           onHide={() => {
             setShowCategoryModal(false);
             categoryForm.reset();
           }}
-          centered
-          animation
-          className="animate__animated animate__slideInUp"
-        >
-          <Modal.Header closeButton>
-            <Modal.Title>Add Category</Modal.Title>
-          </Modal.Header>
-          <Modal.Body>
-            <Form onSubmit={categoryForm.handleSubmit(handleAddCategory)}>
-              <Form.Group className="mb-3" controlId="categoryName">
-                <Form.Label>Category Name</Form.Label>
-                <Form.Control
-                  {...categoryForm.register("categoryName", {
-                    required: "Category name is required",
-                  })}
-                  isInvalid={!!categoryForm.formState.errors.categoryName}
-                  placeholder="Enter category name"
-                  autoFocus
-                />
-                <Form.Control.Feedback type="invalid">
-                  {categoryForm.formState.errors.categoryName?.message}
-                </Form.Control.Feedback>
-              </Form.Group>
-              <Form.Group className="mb-3" controlId="categoryDesc">
-                <Form.Label>Description</Form.Label>
-                <Form.Control
-                  as="textarea"
-                  rows={3}
-                  {...categoryForm.register("categoryDesc")}
-                  placeholder="Enter description"
-                />
-              </Form.Group>
-              <div className="d-flex gap-2">
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    setShowCategoryModal(false);
-                    categoryForm.reset();
-                  }}
-                  className="btn-fill"
-                  disabled={loadingAction}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  variant="primary"
-                  type="submit"
-                  className="btn-fill"
-                  disabled={loadingAction}
-                >
-                  {loadingAction ? <Spinner animation="border" size="sm" /> : "Add Category"}
-                </Button>
-              </div>
-            </Form>
-          </Modal.Body>
-        </Modal>
+          onSubmit={handleAddCategory}
+          loading={loadingAction}
+          form={categoryForm}
+        />
 
         {/* Product Modal */}
-        <Modal
+        <ProductModal
           show={showProductModal}
           onHide={() => {
             setShowProductModal(false);
             productForm.reset();
             setProductImageFile(null);
           }}
-          centered
-          animation
-          className="animate__animated animate__slideInUp"
-        >
-          <Modal.Header closeButton>
-            <Modal.Title>Add Item</Modal.Title>
-          </Modal.Header>
-          <Modal.Body>
-            <Form onSubmit={productForm.handleSubmit(handleAddProduct)}>
-              <Form.Group className="mb-3" controlId="productName">
-                <Form.Label>Item Name</Form.Label>
-                <Form.Control
-                  {...productForm.register("productName", {
-                    required: "Item name is required",
-                  })}
-                  isInvalid={!!productForm.formState.errors.productName}
-                  placeholder="Enter item name"
-                  autoFocus
-                />
-                <Form.Control.Feedback type="invalid">
-                  {productForm.formState.errors.productName?.message}
-                </Form.Control.Feedback>
-              </Form.Group>
-              <Form.Group className="mb-3" controlId="productDesc">
-                <Form.Label>Description</Form.Label>
-                <Form.Control
-                  as="textarea"
-                  rows={3}
-                  {...productForm.register("productDesc")}
-                  placeholder="Enter description"
-                />
-              </Form.Group>
-              <Form.Group className="mb-3" controlId="productPrice">
-                <Form.Label>Price</Form.Label>
-                <Form.Control
-                  type="number"
-                  {...productForm.register("productPrice", {
-                    required: "Price is required",
-                    min: { value: 0, message: "Price cannot be negative" },
-                  })}
-                  isInvalid={!!productForm.formState.errors.productPrice}
-                  placeholder="Enter price"
-                  step="0.01"
-                />
-                <Form.Control.Feedback type="invalid">
-                  {productForm.formState.errors.productPrice?.message}
-                </Form.Control.Feedback>
-              </Form.Group>
-              <Form.Group className="mb-3" controlId="productCategory">
-                <Form.Label>Category</Form.Label>
-                <Form.Control
-                  as="select"
-                  {...productForm.register("productCategory", {
-                    required: "Category is required",
-                  })}
-                  isInvalid={!!productForm.formState.errors.productCategory}
-                >
-                  <option value="">Select Category</option>
-                  {categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </option>
-                  ))}
-                </Form.Control>
-                <Form.Control.Feedback type="invalid">
-                  {productForm.formState.errors.productCategory?.message}
-                </Form.Control.Feedback>
-              </Form.Group>
-              <Form.Group className="mb-3" controlId="productImage">
-                <Form.Label>Product Image</Form.Label>
-                <Form.Control
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setProductImageFile(e.target.files[0])}
-                />
-              </Form.Group>
-              <div className="d-flex gap-2">
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    setShowProductModal(false);
-                    productForm.reset();
-                    setProductImageFile(null);
-                  }}
-                  className="btn-fill"
-                  disabled={loadingAction}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  variant="success"
-                  type="submit"
-                  className="btn-fill"
-                  disabled={loadingAction}
-                >
-                  {loadingAction ? <Spinner animation="border" size="sm" /> : "Add Item"}
-                </Button>
-              </div>
-            </Form>
-          </Modal.Body>
-        </Modal>
+          onSubmit={handleAddProduct}
+          loading={loadingAction}
+          form={productForm}
+          categories={categories}
+          setProductImageFile={setProductImageFile}
+        />
 
         {/* Product View Modal */}
-        <Modal
+        <ProductViewModal
           show={showProductViewModal}
           onHide={() => setShowProductViewModal(false)}
-          centered
-        >
-          <Modal.Header closeButton>
-            <Modal.Title>Product Details</Modal.Title>
-          </Modal.Header>
-          <Modal.Body>
-            {selectedProduct && (
-              <>
-                <p>
-                  <strong>Name:</strong> {selectedProduct.name}
-                </p>
-                <p>
-                  <strong>Price:</strong> ${selectedProduct.price || "0.00"}
-                </p>
-                <p>
-                  <strong>Category:</strong>{" "}
-                  {categories.find((c) => c.id === selectedProduct.category_id)?.name || "Unknown"}
-                </p>
-                <p>
-                  <strong>Status:</strong> {selectedProduct.status || "Active"}
-                </p>
-                {productImages[selectedProduct.id] && (
-                  <img
-                    src={productImages[selectedProduct.id] || FALLBACK_IMAGE}
-                    alt={`Product ${selectedProduct.name}`}
-                    className="product-image"
-                    style={{ width: "100px" }}
-                    onError={(e) => {
-                      const img = e.currentTarget;
-                      if (img.src !== FALLBACK_IMAGE) {
-                        img.onerror = null;
-                        img.src = FALLBACK_IMAGE;
-                      }
-                    }}
-                  />
-                )}
-              </>
-            )}
-          </Modal.Body>
-          <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShowProductViewModal(false)}>
-              Close
-            </Button>
-          </Modal.Footer>
-        </Modal>
+          selectedProduct={selectedProduct}
+          categories={categories}
+          productImages={productImages}
+          fallbackImage={FALLBACK_IMAGE}
+        />
 
         {/* Category View Modal */}
-        <Modal
+        <CategoryViewModal
           show={showCategoryViewModal}
           onHide={() => setShowCategoryViewModal(false)}
-          centered
-        >
-          <Modal.Header closeButton>
-            <Modal.Title>Category Details</Modal.Title>
-          </Modal.Header>
-          <Modal.Body>
-            {selectedCategory && (
-              <>
-                <p>
-                  <strong>Name:</strong> {selectedCategory.name}
-                </p>
-                <p>
-                  <strong>Description:</strong> {selectedCategory.description || "N/A"}
-                </p>
-                <p>
-                  <strong>Status:</strong> {selectedCategory.status || "Active"}
-                </p>
-                {selectedCategory.photo && (
-                  <img
-                    src={selectedCategory.photo || FALLBACK_IMAGE}
-                    alt={`Category ${selectedCategory.name}`}
-                    className="category-image"
-                    style={{ width: "100px" }}
-                    onError={(e) => {
-                      const img = e.currentTarget;
-                      if (img.src !== FALLBACK_IMAGE) {
-                        img.onerror = null;
-                        img.src = FALLBACK_IMAGE;
-                      }
-                    }}
-                  />
-                )}
-              </>
-            )}
-          </Modal.Body>
-          <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShowCategoryViewModal(false)}>
-              Close
-            </Button>
-          </Modal.Footer>
-        </Modal>
+          selectedCategory={selectedCategory}
+          fallbackImage={FALLBACK_IMAGE}
+        />
       </div>
     </div>
   );
