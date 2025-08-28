@@ -12,16 +12,23 @@ import os
 
 images_bp = Blueprint("images", __name__, url_prefix="/images")
 
-# Configure Cloudinary: use CLOUDINARY_URL if present, else fallback to explicit config
+# Configure Cloudinary correctly: if CLOUDINARY_URL is set, let the SDK read it from env;
+# otherwise fall back to explicit keys. Always use secure URLs.
 cloudinary_url = os.getenv("CLOUDINARY_URL")
 if cloudinary_url:
-    cloudinary.config(cloudinary_url=cloudinary_url)
+    cloudinary.config(secure=True)
 else:
     cloudinary.config(
         cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
         api_key=os.getenv("CLOUDINARY_API_KEY"),
-        api_secret=os.getenv("CLOUDINARY_API_SECRET")
+        api_secret=os.getenv("CLOUDINARY_API_SECRET"),
+        secure=True,
     )
+
+# Optional: warn if config is incomplete (helps explain local fallback)
+_cfg = cloudinary.config()
+if not (_cfg.cloud_name and _cfg.api_key and _cfg.api_secret):
+    print("Warning: Cloudinary config incomplete; uploads will fall back to local storage.")
 
 """
 POST /images/
