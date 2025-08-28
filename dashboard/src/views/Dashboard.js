@@ -3,6 +3,7 @@ import ChartistGraph from "react-chartist";
 import { UserContext } from "../context/UserContext";
 import { useNavigate } from "react-router-dom";
 import moment from "moment";
+import { fetchUsers as apiFetchUsers } from "../api/users";
 import ReportList from "../components/ReportList";
 import ReportForm from "../components/ReportForm";
 import {
@@ -180,30 +181,12 @@ function Dashboard() {
   useEffect(() => {
     if (!user || loadingUser || (user.role !== "admin" && user.role !== "marketer")) return;
 
-    const fetchUsers = async () => {
+    const loadUsers = async () => {
       setLoadingUsers(true);
+      setError("");
       try {
-        const response = await fetch(`${API_BASE}/user/`, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (response.status === 401 || response.status === 422) {
-          localStorage.removeItem("auth_token");
-          localStorage.removeItem("user_role");
-          navigate("/auth/login", { replace: true });
-          return;
-        }
-
-        const data = await response.json();
-        if (response.ok) {
-          setUsers(data.users || []);
-        } else {
-          setError(data.error || "Failed to fetch users.");
-        }
+        const data = await apiFetchUsers();
+        setUsers(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error("Error fetching users:", err);
         setError("An error occurred while fetching users.");
@@ -212,8 +195,8 @@ function Dashboard() {
       }
     };
 
-    fetchUsers();
-  }, [user, loadingUser, token, navigate]);
+    loadUsers();
+  }, [user, loadingUser, navigate]);
 
   if (loadingUser || !user) {
     return (
@@ -227,7 +210,13 @@ function Dashboard() {
 
   const totalVisits = visits.length;
   const doctorsVisited = new Set(visits.map((visit) => visit.doctor_name)).size;
-  const activeMarketers = users.filter((u) => u.role === "marketer").length;
+  const activeUsers = (() => {
+    const matched = users.filter((u) => {
+      if (!u || typeof u !== "object") return false;
+      return u.is_active === true || u.isActive === true || u.active === true || (typeof u.status === "string" && u.status.toLowerCase() === "active");
+    });
+    return matched.length > 0 ? matched.length : users.length;
+  })();
 
   const recentVisits = visits.length;
   const upcomingAppointments = visits.filter((visit) =>
@@ -370,8 +359,8 @@ function Dashboard() {
                   </Col>
                   <Col xs="7">
                     <div className="numbers">
-                      <p className="card-category">Active Marketers</p>
-                      <Card.Title as="h4">{loadingUsers ? "..." : activeMarketers}</Card.Title>
+                      <p className="card-category">Active Users</p>
+                      <Card.Title as="h4">{loadingUsers ? "..." : activeUsers}</Card.Title>
                     </div>
                   </Col>
                 </Row>
